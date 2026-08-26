@@ -61,11 +61,11 @@ export function TrackRow({ track, playlistTracks }: TrackRowProps) {
     >
       {/* Left side: Play button + Title/Artist */}
       <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
-        {/* Circular Play / Pause Icon Button */}
+        {/* Circular Play / Pause Icon Button (40x40) */}
         <button
           onClick={handlePlayClick}
           className={cn(
-            "w-8 h-8 rounded-full border flex items-center justify-center shrink-0 transition-colors focus:outline-none",
+            "w-10 h-10 rounded-full border flex items-center justify-center shrink-0 transition-colors focus:outline-none",
             isCurrent && isPlaying
               ? "bg-[#365377] border-[#365377] text-white"
               : isCurrent
@@ -75,9 +75,9 @@ export function TrackRow({ track, playlistTracks }: TrackRowProps) {
           aria-label={isCurrent && isPlaying ? "Pause" : "Play"}
         >
           {isCurrent && isPlaying ? (
-            <Pause className="w-3.5 h-3.5 fill-current" />
+            <Pause className="w-4 h-4 fill-current" />
           ) : (
-            <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+            <Play className="w-4 h-4 fill-current ml-0.5" />
           )}
         </button>
 

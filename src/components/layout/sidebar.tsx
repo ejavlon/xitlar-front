@@ -17,7 +17,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   };
 
   return (
-    <aside className="w-full bg-white rounded-lg border border-slate-200/80 p-4 shadow-sm flex flex-col gap-6 select-none">
+    <div className="w-full flex flex-col gap-6 select-none">
       {/* 1. Discover / Categories Section */}
       <nav className="flex flex-col space-y-0.5">
         {sefonNavItems.map((item) => {
@@ -54,35 +54,34 @@ export function Sidebar({ onClose }: SidebarProps) {
       </nav>
 
       {/* 2. Music by Genres Section */}
-      <div className="space-y-3 pt-2 border-t border-slate-100">
-        <h3 className="text-xs sm:text-sm font-bold text-slate-800 tracking-tight">
+      <div className="space-y-3 pt-3 border-t border-slate-100">
+        <h3 className="text-sm font-bold text-slate-800 tracking-tight">
           Music by Genres
         </h3>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-3 gap-2">
           {sefonGenreTags.map((tag) => {
-            const isSelected =
-              tag.slug &&
-              (pathname === `/genres/${tag.slug}` ||
-                pathname.includes(tag.slug));
+            const isSelected = Boolean(tag.slug && pathname === `/genres/${tag.slug}`);
+            const isMore = tag.label === "more...";
+
             return (
               <Link
                 key={tag.label}
                 href={tag.slug ? `/genres/${tag.slug}` : "/genres"}
                 onClick={handleLinkClick}
                 className={cn(
-                  "text-[11px] font-medium px-2 py-1 rounded bg-[#f1f3f6] hover:bg-[#e2e8f0] text-slate-600 hover:text-slate-900 text-center truncate transition-colors",
+                  "h-7 sm:h-[30px] px-1.5 flex items-center justify-center rounded-[8px] border text-[12px] font-medium transition-all text-center select-none truncate",
                   isSelected
-                    ? "bg-[#365377] text-white hover:bg-[#2d4665] hover:text-white"
-                    : ""
+                    ? "bg-[#365377] text-white border-[#365377] shadow-xs"
+                    : "bg-[#e9eef5] hover:bg-[#dde5ef] text-[#334155] border-[#d9e2ec] hover:border-[#cbd5e1] hover:text-slate-900"
                 )}
               >
-                #{tag.label}
+                {isMore ? "more..." : `# ${tag.label}`}
               </Link>
             );
           })}
         </div>
       </div>
-    </aside>
+    </div>
   );
 }
 

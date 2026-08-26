@@ -49,7 +49,7 @@ export const mockPlaylists: Playlist[] = [
     id: "cinematic-masterpieces",
     title: "Cinematic Soundtracks",
     description: "Grand orchestral works and ambient synthesizer soundtracks to immerse yourself in.",
-    coverUrl: "https://images.unsplash.com/photo-1489980508314-941910ded1f4?w=600&h=600&fit=crop&q=80",
+    coverUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&h=600&fit=crop&q=80",
     trackCount: 3,
     isCollection: true,
     creator: "Hans Zimmer Fan",

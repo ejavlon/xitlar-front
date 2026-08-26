@@ -26,7 +26,7 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
   return (
     <Link
       href={`/playlists/${playlist.id}`}
-      className="group flex flex-col select-none cursor-pointer p-1"
+      className="group flex flex-col select-none cursor-pointer w-full"
     >
       {/* Cover Artwork Container */}
       <div className="w-full aspect-square rounded-xl overflow-hidden relative shadow-xs bg-slate-100 mb-2 border border-slate-200/80">
@@ -51,7 +51,7 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
 
       {/* Title and details */}
       <div className="w-full min-w-0">
-        <h4 className="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-[#365377] transition-colors truncate">
+        <h4 className="text-[13px] font-bold text-slate-800 group-hover:text-[#365377] transition-colors truncate">
           {playlist.title}
         </h4>
         <p className="text-[11px] text-slate-400 mt-0.5 truncate">

@@ -29,7 +29,7 @@ export default function HomePage() {
 
         setPopularTracks(tracksData.slice(0, 10));
         setPopularArtists(artistsData.slice(0, 6));
-        setPlaylists(playlistsData.slice(0, 4));
+        setPlaylists(playlistsData.slice(0, 6));
       } catch (err) {
         console.error("Error fetching homepage data:", err);
       } finally {
@@ -46,10 +46,10 @@ export default function HomePage() {
         {/* Popular Artists Skeleton */}
         <div className="space-y-3">
           <div className="h-5 w-40 bg-slate-200 rounded" />
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+          <div className="flex flex-wrap gap-3">
             {[1, 2, 3, 4, 5, 6].map((n) => (
-              <div key={n} className="flex flex-col items-center gap-2">
-                <div className="w-full aspect-square rounded-xl bg-slate-200" />
+              <div key={n} className="flex flex-col items-center gap-2 w-[127px]">
+                <div className="w-[127px] h-[127px] rounded-xl bg-slate-200" />
                 <div className="h-3 w-16 bg-slate-200 rounded" />
               </div>
             ))}

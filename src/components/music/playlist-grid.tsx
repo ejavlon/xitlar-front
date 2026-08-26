@@ -16,7 +16,7 @@ export function PlaylistGrid({ playlists, fallbackText = "No playlists found" }:
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 w-full">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4 w-full">
       {playlists.map((playlist) => (
         <PlaylistCard key={playlist.id} playlist={playlist} />
       ))}

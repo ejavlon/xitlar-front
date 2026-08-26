@@ -77,5 +77,40 @@ export const mockGenres: Genre[] = [
     name: "Retro & Classics",
     description: "Timeless hits from the 70s, 80s, and 90s.",
     coverUrl: "https://images.unsplash.com/photo-1484704849700-f032a568e944?w=600&h=400&fit=crop&q=80"
+  },
+  {
+    id: "club",
+    slug: "club",
+    name: "Club",
+    description: "Vibrant club tracks, remixes, and dancefloor anthems.",
+    coverUrl: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&h=400&fit=crop&q=80"
+  },
+  {
+    id: "chanson",
+    slug: "chanson",
+    name: "Chanson",
+    description: "Soulful melodic storytelling and acoustic ballads.",
+    coverUrl: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=600&h=400&fit=crop&q=80"
+  },
+  {
+    id: "relax",
+    slug: "relax",
+    name: "Relax",
+    description: "Calm melodies, ambient beats, and chillout atmospheres.",
+    coverUrl: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=600&h=400&fit=crop&q=80"
+  },
+  {
+    id: "dubstep",
+    slug: "dubstep",
+    name: "Dubstep",
+    description: "Heavy bass drops, wobble synths, and powerful drops.",
+    coverUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&h=400&fit=crop&q=80"
+  },
+  {
+    id: "metal",
+    slug: "metal",
+    name: "Metal",
+    description: "High-intensity heavy metal, guitar riffs, and driving percussion.",
+    coverUrl: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=600&h=400&fit=crop&q=80"
   }
 ];

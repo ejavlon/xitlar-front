@@ -44,16 +44,16 @@ export const sefonNavItems: NavItem[] = [
 
 export const sefonGenreTags = [
   { label: "pop", slug: "pop" },
-  { label: "club", slug: "dance" },
-  { label: "chanson", slug: "retro" },
+  { label: "club", slug: "club" },
+  { label: "chanson", slug: "chanson" },
   { label: "rap", slug: "rap" },
   { label: "rock", slug: "rock" },
   { label: "trance", slug: "trance" },
   { label: "dance", slug: "dance" },
-  { label: "relax", slug: "chill" },
-  { label: "dubstep", slug: "electronic" },
+  { label: "relax", slug: "relax" },
+  { label: "dubstep", slug: "dubstep" },
   { label: "house", slug: "house" },
-  { label: "metal", slug: "rock" },
+  { label: "metal", slug: "metal" },
   { label: "more...", slug: "" },
 ];
 

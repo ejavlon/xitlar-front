@@ -1,52 +1,33 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { User as UserType } from "@/types/user";
 import { userService } from "@/services/user.service";
-import { Settings, User, Music, Bell, Palette, Moon, Sun, Save, Loader2, CheckCircle } from "lucide-react";
-
-interface SettingsSection {
-  id: string;
-  title: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}
+import { ArrowLeft, Check, Lock, Trash2, X } from "lucide-react";
 
 export default function SettingsPage() {
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Settings state
-  const [settings, setSettings] = useState({
-    // Account
-    displayName: "",
-    email: "",
-    // Playback
-    audioQuality: "HQ" as "MQ" | "HQ",
-    crossfade: false,
-    gaplessPlayback: true,
-    autoPlay: true,
-    normalizeVolume: false,
-    // Notifications
-    emailNotifications: true,
-    pushNotifications: false,
-    newReleases: true,
-    playlistUpdates: true,
-    socialActivity: false,
-    // Appearance
-    theme: "system" as "light" | "dark" | "system",
-    compactMode: false,
-    showLyrics: true,
-  });
+  // Settings Checkboxes (Matching Sefon Screenshot)
+  const [sendImportantNews, setSendImportantNews] = useState(true);
+  const [sendSiteNotifications, setSendSiteNotifications] = useState(true);
+  const [newSearchDesign, setNewSearchDesign] = useState(true);
+
+  // Modals for Actions
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const user = await userService.getCurrentUser();
         setCurrentUser(user);
-        setSettings(prev => ({ ...prev, displayName: user.name }));
       } catch (err) {
         console.error("Error fetching user:", err);
       } finally {
@@ -56,310 +37,337 @@ export default function SettingsPage() {
     fetchUser();
   }, []);
 
-  const handleSettingChange = (key: string, value: unknown) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      alert("Passwords do not match!");
+      return;
+    }
+    setPasswordSuccess(true);
+    setTimeout(() => {
+      setPasswordSuccess(false);
+      setPasswordModalOpen(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    }, 1500);
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setSaving(false);
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
+  const handleDeleteAccount = () => {
+    alert("Account deletion requested (presentation state).");
+    setDeleteModalOpen(false);
   };
 
   if (loading) {
     return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-6 w-48 bg-slate-200 rounded" />
-        <div className="space-y-4">
-          {[1, 2, 3, 4].map(n => (
-            <div key={n} className="h-32 bg-slate-100 rounded-lg border border-slate-200" />
-          ))}
+      <div className="space-y-6 animate-pulse p-2">
+        <div className="flex gap-6 items-center">
+          <div className="w-24 h-24 rounded-full bg-slate-200" />
+          <div className="space-y-2">
+            <div className="h-5 w-32 bg-slate-200 rounded" />
+            <div className="h-3 w-48 bg-slate-200 rounded" />
+          </div>
         </div>
+        <div className="h-32 bg-slate-100 rounded-lg" />
       </div>
     );
   }
 
-  const sections: SettingsSection[] = [
-    {
-      id: "account",
-      title: "Account",
-      icon: <User className="w-5 h-5" />,
-      children: (
-        <div className="space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden shrink-0">
-              {currentUser?.avatarUrl ? (
-                <img
-                  src={currentUser.avatarUrl}
-                  alt={currentUser.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <User className="w-8 h-8 text-slate-400" />
-              )}
-            </div>
-            <div className="flex-1">
-              <label htmlFor="displayName" className="block text-xs font-medium text-slate-500 mb-1">
-                Display Name
-              </label>
-              <input
-                id="displayName"
-                type="text"
-                value={settings.displayName}
-                onChange={e => handleSettingChange("displayName", e.target.value)}
-                className="w-full bg-white text-slate-800 text-sm px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:border-transparent transition-all"
-                placeholder="Enter your name"
-              />
-            </div>
-          </div>
-          <div>
-            <label htmlFor="email" className="block text-xs font-medium text-slate-500 mb-1">
-              Email Address
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={settings.email}
-              onChange={e => handleSettingChange("email", e.target.value)}
-              className="w-full bg-slate-50 text-slate-800 text-sm px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:border-transparent transition-all cursor-not-allowed"
-              placeholder="user@example.com"
-              disabled
-            />
-            <p className="text-xs text-slate-400 mt-1">Email cannot be changed from here</p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "playback",
-      title: "Playback",
-      icon: <Music className="w-5 h-5" />,
-      children: (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-2">Audio Quality</label>
-            <div className="flex gap-3">
-              {["MQ", "HQ"].map(quality => (
-                <button
-                  key={quality}
-                  type="button"
-                  onClick={() => handleSettingChange("audioQuality", quality)}
-                  className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${
-                    settings.audioQuality === quality
-                      ? "bg-[#365377] text-white shadow-sm"
-                      : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400"
-                  }`}
-                >
-                  {quality === "HQ" ? "High Quality (320 kbps)" : "Medium Quality (128 kbps)"}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-3 pt-2 border-t border-slate-100">
-            {[
-              { key: "crossfade", label: "Crossfade", description: "Smoothly transition between tracks" },
-              { key: "gaplessPlayback", label: "Gapless Playback", description: "Play tracks without silence between them" },
-              { key: "autoPlay", label: "Autoplay", description: "Automatically play similar music when queue ends" },
-              { key: "normalizeVolume", label: "Normalize Volume", description: "Keep volume consistent across tracks" },
-            ].map(item => (
-              <label key={item.key} className="flex items-center justify-between gap-4 cursor-pointer">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-800">{item.label}</p>
-                  <p className="text-xs text-slate-500">{item.description}</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings[item.key as keyof typeof settings] as boolean}
-                  onChange={e => handleSettingChange(item.key, e.target.checked)}
-                  className="w-5 h-5 text-[#f59e0b] border-slate-300 rounded focus:ring-2 focus:ring-[#f59e0b] focus:ring-offset-2 transition-colors"
-                />
-              </label>
-            ))}
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "notifications",
-      title: "Notifications",
-      icon: <Bell className="w-5 h-5" />,
-      children: (
-        <div className="space-y-4">
-          <div className="space-y-3">
-            {[
-              { key: "emailNotifications", label: "Email Notifications", description: "Receive updates via email" },
-              { key: "pushNotifications", label: "Push Notifications", description: "Receive browser notifications" },
-            ].map(item => (
-              <label key={item.key} className="flex items-center justify-between gap-4 cursor-pointer p-3 bg-slate-50 rounded-md hover:bg-slate-100 transition-colors">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-800">{item.label}</p>
-                  <p className="text-xs text-slate-500">{item.description}</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings[item.key as keyof typeof settings] as boolean}
-                  onChange={e => handleSettingChange(item.key, e.target.checked)}
-                  className="w-5 h-5 text-[#f59e0b] border-slate-300 rounded focus:ring-2 focus:ring-[#f59e0b] focus:ring-offset-2 transition-colors"
-                />
-              </label>
-            ))}
-          </div>
-          <div className="pt-2 border-t border-slate-100">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">Notification Preferences</p>
-            <div className="space-y-3">
-              {[
-                { key: "newReleases", label: "New Releases", description: "Notifications for new music from followed artists" },
-                { key: "playlistUpdates", label: "Playlist Updates", description: "When your playlists are updated" },
-                { key: "socialActivity", label: "Social Activity", description: "Likes, comments, and follows" },
-              ].map(item => (
-                <label key={item.key} className="flex items-center justify-between gap-4 cursor-pointer">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-800">{item.label}</p>
-                    <p className="text-xs text-slate-500">{item.description}</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={settings[item.key as keyof typeof settings] as boolean}
-                    onChange={e => handleSettingChange(item.key, e.target.checked)}
-                    disabled={!settings.emailNotifications && !settings.pushNotifications}
-                    className="w-5 h-5 text-[#f59e0b] border-slate-300 rounded focus:ring-2 focus:ring-[#f59e0b] focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "appearance",
-      title: "Appearance",
-      icon: <Palette className="w-5 h-5" />,
-      children: (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-2">Theme</label>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { value: "light", label: "Light", icon: <Sun className="w-5 h-5" /> },
-                { value: "dark", label: "Dark", icon: <Moon className="w-5 h-5" /> },
-                { value: "system", label: "System", icon: <Settings className="w-5 h-5" /> },
-              ].map(theme => (
-                <button
-                  key={theme.value}
-                  type="button"
-                  onClick={() => handleSettingChange("theme", theme.value)}
-                  className={`relative p-4 rounded-lg border-2 transition-all ${
-                    settings.theme === theme.value
-                      ? "border-[#f59e0b] bg-amber-50"
-                      : "border-slate-200 hover:border-slate-300 bg-white"
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-slate-600">
-                      {theme.icon}
-                    </div>
-                    <span className="text-sm font-medium text-slate-800">{theme.label}</span>
-                  </div>
-                  {settings.theme === theme.value && (
-                    <div className="absolute top-2 right-2 w-5 h-5 bg-[#f59e0b] rounded-full flex items-center justify-center">
-                      <CheckCircle className="w-3.5 h-3.5 text-white" />
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-3 pt-2 border-t border-slate-100">
-            {[
-              { key: "compactMode", label: "Compact Mode", description: "Reduce spacing for more content on screen" },
-              { key: "showLyrics", label: "Show Lyrics", description: "Display lyrics when available" },
-            ].map(item => (
-              <label key={item.key} className="flex items-center justify-between gap-4 cursor-pointer">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-800">{item.label}</p>
-                  <p className="text-xs text-slate-500">{item.description}</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings[item.key as keyof typeof settings] as boolean}
-                  onChange={e => handleSettingChange(item.key, e.target.checked)}
-                  className="w-5 h-5 text-[#f59e0b] border-slate-300 rounded focus:ring-2 focus:ring-[#f59e0b] focus:ring-offset-2 transition-colors"
-                />
-              </label>
-            ))}
-          </div>
-        </div>
-      ),
-    },
-  ];
+  const userName = currentUser?.name || "Javlon";
+  const userEmail = currentUser?.email || "javlon2677572@gmail.com";
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">Settings</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Manage your account and preferences</p>
-        </div>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 px-4 py-2 bg-[#365377] hover:bg-[#2d4665] text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#365377] focus:ring-offset-2"
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : saveSuccess ? (
-            <CheckCircle className="w-4 h-4" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          <span>{saving ? "Saving..." : saveSuccess ? "Saved!" : "Save Changes"}</span>
-        </button>
-      </div>
-
-      {/* Settings Sections */}
-      <div className="space-y-5">
-        {sections.map(section => (
-          <section
-            key={section.id}
-            id={section.id}
-            className="bg-white rounded-lg border border-slate-200/80 p-5 sm:p-6 shadow-xs"
+    <div className="space-y-6 select-none animate-fade-in font-sans">
+      {/* 1. TOP PROFILE HEADER SECTION (Matches Sefon Screenshot) */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-7 pt-2">
+        {/* Grey User Silhouette Avatar */}
+        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#cbd5e1] flex items-end justify-center overflow-hidden shrink-0 shadow-inner">
+          <svg
+            className="w-20 h-20 sm:w-24 sm:h-24 text-white fill-current translate-y-1"
+            viewBox="0 0 24 24"
           >
-            <div className="flex items-center gap-3 mb-5 pb-3 border-b border-slate-100">
-              <div className="w-9 h-9 rounded-lg bg-[#365377]/10 flex items-center justify-center text-[#365377] shrink-0">
-                {section.icon}
-              </div>
-              <h2 className="text-base sm:text-lg font-semibold text-slate-800">{section.title}</h2>
-            </div>
-            {section.children}
-          </section>
-        ))}
-      </div>
-
-      {/* Danger Zone */}
-      <section className="bg-white rounded-lg border border-slate-200/80 p-5 sm:p-6 shadow-xs">
-        <div className="flex items-center gap-3 mb-5 pb-3 border-b border-slate-100">
-          <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center text-red-600 shrink-0">
-            <Settings className="w-5 h-5" />
-          </div>
-          <h2 className="text-base sm:text-lg font-semibold text-slate-800">Danger Zone</h2>
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+          </svg>
         </div>
-        <div className="flex items-center justify-between">
+
+        {/* User Details & 2-Column Menu Links */}
+        <div className="space-y-2.5 min-w-0">
           <div>
-            <p className="text-sm font-medium text-slate-800">Delete Account</p>
-            <p className="text-xs text-slate-500 mt-0.5">Permanently delete your account and all data</p>
+            <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-tight">
+              {userName}
+            </h1>
+            <p className="text-xs text-slate-400 mt-0.5">{userEmail}</p>
           </div>
-          <button
-            className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-600 text-sm font-medium rounded-md transition-colors border border-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-          >
-            Delete Account
-          </button>
+
+          {/* Sub Navigation Links Grid */}
+          <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-xs text-slate-600 pt-1">
+            {/* Column 1 */}
+            <div className="space-y-1">
+              <Link
+                href="#messages"
+                className="flex items-center gap-1.5 hover:text-[#365377] transition-colors"
+              >
+                <span>Messages</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+              </Link>
+              <div>
+                <Link href="#news" className="hover:text-[#365377] transition-colors">
+                  News
+                </Link>
+              </div>
+              <div>
+                <Link href="#orders" className="hover:text-[#365377] transition-colors">
+                  Requests
+                </Link>
+              </div>
+              <div>
+                <Link href="#updates" className="hover:text-[#365377] transition-colors">
+                  Updates
+                </Link>
+              </div>
+            </div>
+
+            {/* Column 2 */}
+            <div className="space-y-1">
+              <div>
+                <Link href="#help" className="hover:text-[#365377] transition-colors">
+                  Help
+                </Link>
+              </div>
+              <div>
+                <Link href="/settings" className="font-semibold text-[#365377] transition-colors">
+                  Settings
+                </Link>
+              </div>
+              <div>
+                <button
+                  onClick={() => alert("Logout (presentation state)")}
+                  className="hover:text-red-500 transition-colors text-left"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </section>
+      </div>
+
+      {/* Thin Horizontal Divider */}
+      <div className="border-t border-slate-200/80 pt-4" />
+
+      {/* 2. SETTINGS TITLE & BACK ARROW */}
+      <div className="flex items-center gap-2 text-slate-800">
+        <Link
+          href="/"
+          className="p-1 -ml-1 text-slate-600 hover:text-[#365377] transition-colors rounded"
+          aria-label="Back"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </Link>
+        <h2 className="text-sm sm:text-base font-bold tracking-tight text-slate-900">
+          My Settings
+        </h2>
+      </div>
+
+      {/* 3. SETTINGS 2-COLUMN GRID (Matching Sefon Screenshot) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 pt-2">
+        {/* Column 1: General */}
+        <div className="space-y-3">
+          <h3 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight">
+            General
+          </h3>
+
+          <div className="space-y-2.5 text-xs text-slate-700">
+            {/* Checkbox 1 */}
+            <label className="flex items-start gap-2.5 cursor-pointer group select-none">
+              <input
+                type="checkbox"
+                checked={sendImportantNews}
+                onChange={(e) => setSendImportantNews(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded-[3px] border border-[#70a4db] text-[#365377] focus:ring-0 focus:outline-none accent-[#365377] cursor-pointer"
+              />
+              <span className="group-hover:text-slate-900 transition-colors leading-tight">
+                Send important news via email
+              </span>
+            </label>
+
+            {/* Checkbox 2 */}
+            <label className="flex items-start gap-2.5 cursor-pointer group select-none">
+              <input
+                type="checkbox"
+                checked={sendSiteNotifications}
+                onChange={(e) => setSendSiteNotifications(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded-[3px] border border-[#70a4db] text-[#365377] focus:ring-0 focus:outline-none accent-[#365377] cursor-pointer"
+              />
+              <span className="group-hover:text-slate-900 transition-colors leading-tight">
+                Send site notifications via email
+              </span>
+            </label>
+
+            {/* Checkbox 3 */}
+            <label className="flex items-start gap-2.5 cursor-pointer group select-none">
+              <input
+                type="checkbox"
+                checked={newSearchDesign}
+                onChange={(e) => setNewSearchDesign(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded-[3px] border border-[#70a4db] text-[#365377] focus:ring-0 focus:outline-none accent-[#365377] cursor-pointer"
+              />
+              <span className="group-hover:text-slate-900 transition-colors leading-tight">
+                New search suggestion design
+              </span>
+            </label>
+          </div>
+        </div>
+
+        {/* Column 2: Account */}
+        <div className="space-y-3">
+          <h3 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight">
+            Account
+          </h3>
+
+          <div className="space-y-2 text-xs text-slate-700">
+            <div>
+              <button
+                onClick={() => setPasswordModalOpen(true)}
+                className="hover:text-[#365377] hover:underline transition-colors text-left focus:outline-none"
+              >
+                Change password
+              </button>
+            </div>
+            <div>
+              <button
+                onClick={() => setDeleteModalOpen(true)}
+                className="hover:text-red-600 hover:underline transition-colors text-left focus:outline-none"
+              >
+                Delete account
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* CHANGE PASSWORD MODAL */}
+      {passwordModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in p-4">
+          <div className="w-full max-w-sm bg-white rounded-lg shadow-2xl border border-slate-200 p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2 text-slate-800">
+                <Lock className="w-4 h-4 text-[#365377]" />
+                <h4 className="text-sm font-bold">Change Password</h4>
+              </div>
+              <button
+                onClick={() => setPasswordModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {passwordSuccess ? (
+              <div className="py-6 text-center space-y-2">
+                <div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
+                  <Check className="w-5 h-5" />
+                </div>
+                <p className="text-sm font-semibold text-slate-800">
+                  Password updated successfully!
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleChangePassword} className="space-y-3 text-xs">
+                <div>
+                  <label className="block font-medium text-slate-600 mb-1">
+                    Current password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-1.5 outline-none focus:border-[#365377]"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-slate-600 mb-1">
+                    New password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-1.5 outline-none focus:border-[#365377]"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-slate-600 mb-1">
+                    Confirm new password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-1.5 outline-none focus:border-[#365377]"
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                <div className="pt-2 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPasswordModalOpen(false)}
+                    className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 bg-[#365377] hover:bg-[#2d4665] text-white rounded font-medium transition-colors"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* DELETE ACCOUNT CONFIRMATION MODAL */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in p-4">
+          <div className="w-full max-w-sm bg-white rounded-lg shadow-2xl border border-slate-200 p-5 space-y-4">
+            <div className="flex items-center gap-2 text-red-600 border-b border-slate-100 pb-3">
+              <Trash2 className="w-5 h-5" />
+              <h4 className="text-sm font-bold">Delete Account?</h4>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Are you sure you want to delete your account? All your saved playlists, history, and settings will be permanently removed.
+            </p>
+
+            <div className="pt-2 flex justify-end gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => setDeleteModalOpen(false)}
+                className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                className="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded font-medium transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
