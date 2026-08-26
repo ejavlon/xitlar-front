@@ -25,11 +25,11 @@ export interface NavItem {
 }
 
 export const sefonNavItems: NavItem[] = [
-  { label: "New Releases", href: "/", icon: Play, color: "bg-[#5fc3f3] text-white" },
+  { label: "New Releases", href: "/new", icon: Play, color: "bg-[#5fc3f3] text-white" },
   { label: "Collections", href: "/collections", icon: Music, color: "bg-[#ff6d8c] text-white" },
   { label: "Genres", href: "/genres", icon: Headphones, color: "bg-[#fec33d] text-white" },
   { label: "Artists", href: "/artists", icon: Mic2, color: "bg-[#ff9e42] text-white" },
-  { label: "Music Videos", href: "#videos", icon: Video, color: "bg-[#92cc77] text-white" },
+  { label: "Music Videos", href: "/videos", icon: Video, color: "bg-[#92cc77] text-white" },
   { label: "Ringtones", href: "#ringtones", icon: Phone, color: "bg-[#82afc4] text-white" },
   { label: "Popular", href: "/#popular", icon: Volume2, color: "bg-[#6bc0bf] text-white" },
   { label: "Retro", href: "/genres/retro", icon: CassetteTape, color: "bg-[#ff7e7d] text-white" },

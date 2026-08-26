@@ -55,7 +55,7 @@ export function Sidebar({ onClose }: SidebarProps) {
 
       {/* 2. Music by Genres Section */}
       <div className="space-y-3 pt-3 border-t border-slate-100">
-        <h3 className="text-sm font-bold text-slate-800 tracking-tight">
+        <h3 className="text-[16px] font-bold text-slate-900 tracking-tight">
           Music by Genres
         </h3>
         <div className="grid grid-cols-3 gap-2">

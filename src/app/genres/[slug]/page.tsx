@@ -1,28 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Genre } from "../../../types/genre";
+import { useParams } from "next/navigation";
+import Link from "next/link";
 import { Track } from "../../../types/track";
 import { Artist } from "../../../types/artist";
 import { Playlist } from "../../../types/playlist";
 import { musicService } from "../../../services/music.service";
 import { artistService } from "../../../services/artist.service";
-import { TrackList } from "../../../components/music/track-list";
+import { TrackRow } from "../../../components/music/track-row";
 import { ArtistGrid } from "../../../components/music/artist-grid";
 import { PlaylistGrid } from "../../../components/music/playlist-grid";
-import { ArrowLeft, Loader } from "lucide-react";
+import { Loader } from "lucide-react";
 
 export default function GenreDetailPage() {
   const params = useParams();
-  const router = useRouter();
-  const slug = params.slug as string;
+  const slug = (params?.slug as string) || "pop";
 
-  const [genre, setGenre] = useState<Genre | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Expanded track slices
+  const [showAllFresh, setShowAllFresh] = useState(false);
+  const [showAllTop, setShowAllTop] = useState(false);
 
   useEffect(() => {
     const fetchGenreData = async () => {
@@ -30,24 +32,22 @@ export default function GenreDetailPage() {
       try {
         setLoading(true);
 
-        const genreInfo = await musicService.getGenreBySlug(slug);
-        setGenre(genreInfo);
+        const [tracksData, playlistsData, artistsData] = await Promise.all([
+          musicService.getTracksByGenre(slug),
+          musicService.getPlaylistsByGenre(slug),
+          artistService.getArtists(),
+        ]);
 
-        if (genreInfo) {
-          const [tracksData, playlistsData, artistsData] = await Promise.all([
-            musicService.getTracksByGenre(slug),
-            musicService.getPlaylistsByGenre(slug),
-            artistService.getArtists()
-          ]);
-
-          setTracks(tracksData);
-          setPlaylists(playlistsData);
-
-          const filteredArtists = artistsData.filter((a) =>
-            a.genres.includes(slug)
-          );
-          setArtists(filteredArtists);
+        // If genre tracks are few in mock data, fill with popular tracks
+        let allGenreTracks = tracksData;
+        if (allGenreTracks.length < 8) {
+          const popular = await musicService.getPopularTracks();
+          allGenreTracks = [...tracksData, ...popular.slice(0, 12 - tracksData.length)];
         }
+
+        setTracks(allGenreTracks);
+        setPlaylists(playlistsData.length > 0 ? playlistsData : await musicService.getPlaylists());
+        setArtists(artistsData.slice(0, 6));
       } catch (err) {
         console.error("Error fetching genre detail:", err);
       } finally {
@@ -62,74 +62,111 @@ export default function GenreDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-2">
         <Loader className="w-6 h-6 text-[#365377] animate-spin" />
-        <p className="text-xs text-slate-400 font-medium">Filtering music archives...</p>
+        <p className="text-xs text-slate-400 font-medium">Loading genre catalog...</p>
       </div>
     );
   }
 
-  if (!genre) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 px-4 text-center select-none">
-        <h2 className="text-xl font-bold text-slate-800 mb-2">Genre Not Found</h2>
-        <p className="text-xs text-slate-500 max-w-sm mb-6">
-          We couldn&apos;t find the music genre &ldquo;{slug}&rdquo;.
-        </p>
-        <button
-          onClick={() => router.push("/genres")}
-          className="px-5 py-2 bg-[#365377] text-white font-semibold text-xs rounded-md hover:bg-[#2d4665] transition-colors"
-        >
-          Browse All Genres
-        </button>
-      </div>
-    );
-  }
+  // Split tracks into Fresh Releases and Top Tracks (Matching Sefon Screenshot)
+  const freshTracks = showAllFresh ? tracks : tracks.slice(0, 5);
+  const topTracks = showAllTop
+    ? [...tracks].sort((a, b) => b.likesCount - a.likesCount)
+    : [...tracks].sort((a, b) => b.likesCount - a.likesCount).slice(0, 5);
 
   return (
-    <div className="space-y-6 select-none">
-      {/* Back button */}
-      <button
-        onClick={() => router.back()}
-        className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-slate-700 transition-colors focus:outline-none"
-      >
-        <ArrowLeft className="w-3.5 h-3.5" />
-        <span>Back</span>
-      </button>
+    <div className="space-y-7 select-none animate-fade-in font-sans">
+      {/* 1. TWO-COLUMN TRACK LISTS: Fresh Releases & Top Tracks */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 pt-1">
+        {/* Left Column: Fresh Releases */}
+        <div className="space-y-3">
+          <h2 className="text-[17px] sm:text-[18px] font-bold text-slate-900 tracking-tight">
+            Fresh Releases
+          </h2>
 
-      {/* Genre Header / Banner */}
-      <section className="space-y-1 pb-4 border-b border-slate-100">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded inline-block">
-          #{genre.slug}
-        </span>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight capitalize">
-          {genre.name}
-        </h1>
-        <p className="text-xs text-slate-500 max-w-2xl">
-          {genre.description || `Discover matching artists, popular tracks, and collections in the ${genre.name} music style.`}
-        </p>
+          <div className="divide-y divide-slate-100">
+            {freshTracks.map((track, idx) => (
+              <TrackRow
+                key={`fresh-${track.id}-${idx}`}
+                track={track}
+                index={idx}
+                playlistTracks={freshTracks}
+                variant="compact"
+              />
+            ))}
+          </div>
+
+          <div>
+            <button
+              onClick={() => setShowAllFresh(!showAllFresh)}
+              className="mt-2 px-5 py-1.5 border border-slate-300 hover:border-slate-400 rounded-full text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors focus:outline-none shadow-2xs"
+            >
+              {showAllFresh ? "Show less" : "View all"}
+            </button>
+          </div>
+        </div>
+
+        {/* Right Column: Top Tracks */}
+        <div className="space-y-3">
+          <h2 className="text-[17px] sm:text-[18px] font-bold text-slate-900 tracking-tight">
+            Top Tracks
+          </h2>
+
+          <div className="divide-y divide-slate-100">
+            {topTracks.map((track, idx) => (
+              <TrackRow
+                key={`top-${track.id}-${idx}`}
+                track={track}
+                index={idx}
+                playlistTracks={topTracks}
+                variant="compact"
+              />
+            ))}
+          </div>
+
+          <div>
+            <button
+              onClick={() => setShowAllTop(!showAllTop)}
+              className="mt-2 px-5 py-1.5 border border-slate-300 hover:border-slate-400 rounded-full text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors focus:outline-none shadow-2xs"
+            >
+              {showAllTop ? "Show less" : "View all"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. TOP ARTISTS SECTION (Matching Sefon Screenshot) */}
+      <section className="space-y-3 pt-4 border-t border-slate-100">
+        <div className="flex items-center justify-between pb-1">
+          <h2 className="text-base sm:text-[18px] font-bold text-slate-900 tracking-tight">
+            Top Artists
+          </h2>
+          <Link
+            href="/artists"
+            className="text-[13px] sm:text-[14px] text-slate-400 hover:text-[#365377] font-medium transition-colors"
+          >
+            View all
+          </Link>
+        </div>
+        <ArtistGrid artists={artists} />
       </section>
 
-      {/* Popular Tracks in Genre */}
-      <section className="space-y-3">
-        <h2 className="text-sm font-bold text-slate-800">Popular {genre.name} Tracks</h2>
-        <TrackList tracks={tracks} fallbackText={`No tracks found in the ${genre.name} genre.`} />
+      {/* 4. COLLECTIONS / SELECTIONS SECTION (Matching Sefon Screenshot) */}
+      <section className="space-y-3 pt-4 border-t border-slate-100">
+        <div className="flex items-center justify-between pb-1">
+          <h2 className="text-base sm:text-[18px] font-bold text-slate-900 tracking-tight">
+            Collections
+          </h2>
+          <Link
+            href="/collections"
+            className="text-[13px] sm:text-[14px] text-slate-400 hover:text-[#365377] font-medium transition-colors"
+          >
+            View all
+          </Link>
+        </div>
+        <PlaylistGrid playlists={playlists} />
       </section>
-
-      {/* Artists in Genre */}
-      {artists.length > 0 && (
-        <section className="space-y-3 pt-4 border-t border-slate-100">
-          <h2 className="text-sm font-bold text-slate-800">{genre.name} Artists</h2>
-          <ArtistGrid artists={artists} />
-        </section>
-      )}
-
-      {/* Collections in Genre */}
-      {playlists.length > 0 && (
-        <section className="space-y-3 pt-4 border-t border-slate-100">
-          <h2 className="text-sm font-bold text-slate-800">{genre.name} Collections</h2>
-          <PlaylistGrid playlists={playlists} />
-        </section>
-      )}
     </div>
   );
 }
+
 

@@ -9,11 +9,12 @@ import { Artist } from "@/types/artist";
 import { Playlist } from "@/types/playlist";
 import { userService } from "@/services/user.service";
 import { musicService } from "@/services/music.service";
+import { artistService } from "@/services/artist.service";
 import { TrackRow } from "@/components/music/track-row";
 import { ArtistGrid } from "@/components/music/artist-grid";
 import { PlaylistGrid } from "@/components/music/playlist-grid";
 import { cn } from "@/lib/utils";
-import { Loader, Heart, MessageSquare, Bell, Film, Plus } from "lucide-react";
+import { Loader, Heart, Bell, Film, Plus } from "lucide-react";
 
 type ProfileTab =
   | "likes"
@@ -64,7 +65,7 @@ export default function ProfilePage() {
         const [userData, trackData, artistData, playlistData] = await Promise.all([
           userService.getCurrentUser(),
           musicService.getPopularTracks(),
-          musicService.getPopularArtists(),
+          artistService.getArtists(),
           musicService.getPlaylists(),
         ]);
         setCurrentUser(userData);

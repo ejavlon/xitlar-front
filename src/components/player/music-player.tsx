@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { usePlayerStore } from "../../stores/player-store";
 import { useAudioPlayer } from "../../hooks/use-audio-player";
 import { usePlayerInit } from "../../hooks/use-player-init";
-import { formatDuration, formatNumber, formatReleaseDate } from "../../lib/formatters";
+import { formatDuration } from "../../lib/formatters";
 import { cn } from "../../lib/utils";
 import { MiniPlayer } from "./mini-player";
 import { VolumePopover } from "./volume-popover";
@@ -12,6 +13,7 @@ import { EqualizerModal } from "./equalizer-modal";
 import { mockPlaylists } from "../../mock/playlists";
 import { mockArtists } from "../../mock/artists";
 import { mockTracks } from "../../mock/tracks";
+import { TrackRow } from "../music/track-row";
 import {
   Play,
   Pause,
@@ -21,7 +23,6 @@ import {
   Shuffle,
   List,
   Heart,
-  HeartCrack,
   Plus,
   Download,
   X,
@@ -33,7 +34,6 @@ export function MusicPlayer() {
     currentTrack,
     isPlaying,
     queue,
-    currentIndex,
     currentTime,
     duration,
     repeatMode,
@@ -45,7 +45,6 @@ export function MusicPlayer() {
     toggleShuffle,
     toggleRepeat,
     setQuality,
-    playTrack,
     playQueue
   } = usePlayerStore();
 
@@ -55,27 +54,11 @@ export function MusicPlayer() {
   const [queueModalOpen, setQueueModalOpen] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
-  const [likedTrackIds, setLikedTrackIds] = useState<Record<string, boolean>>({});
-  const [dislikedTrackIds, setDislikedTrackIds] = useState<Record<string, boolean>>({});
 
   // Sync liked state with track change
   useEffect(() => {
     setIsLiked(false);
   }, [currentTrack]);
-
-  const toggleTrackLike = (trackId: string) => {
-    setLikedTrackIds(prev => ({ ...prev, [trackId]: !prev[trackId] }));
-    if (dislikedTrackIds[trackId]) {
-      setDislikedTrackIds(prev => ({ ...prev, [trackId]: false }));
-    }
-  };
-
-  const toggleTrackDislike = (trackId: string) => {
-    setDislikedTrackIds(prev => ({ ...prev, [trackId]: !prev[trackId] }));
-    if (likedTrackIds[trackId]) {
-      setLikedTrackIds(prev => ({ ...prev, [trackId]: false }));
-    }
-  };
 
   if (!currentTrack) {
     return (
@@ -220,12 +203,18 @@ export function MusicPlayer() {
 
           {/* Center: Track Details (Bold Artist & Regular Title in single line) */}
           <div className="flex-1 text-center px-4 min-w-0 flex items-center justify-center gap-1.5">
-            <span className="text-xs sm:text-sm text-slate-900 font-bold truncate">
+            <Link
+              href={`/artists/${currentTrack.artist.id}`}
+              className="text-xs sm:text-sm text-slate-900 font-bold truncate hover:underline hover:text-[#365377] transition-colors"
+            >
               {currentTrack.artist.name}
-            </span>
-            <span className="text-xs sm:text-sm text-slate-500 font-normal truncate">
+            </Link>
+            <Link
+              href={`/artists/${currentTrack.artist.id}`}
+              className="text-xs sm:text-sm text-slate-500 font-normal truncate hover:underline hover:text-[#365377] transition-colors"
+            >
               {currentTrack.title}
-            </span>
+            </Link>
           </div>
 
           {/* Right Controls: Quality, Volume, Like, Plus, Download */}
@@ -280,15 +269,24 @@ export function MusicPlayer() {
 
       {/* QUEUE / PLAYLIST FULL OVERLAY (Positioned from Top down to Bottom Player Bar) */}
       {queueModalOpen && (
-        <div className="fixed inset-y-0 bottom-16 left-1/2 -translate-x-1/2 w-full max-w-[1300px] z-50 flex flex-col bg-white shadow-2xl border-x border-slate-200 animate-fade-in select-none">
-          {/* Overlay Header: Left Title + Right Clean Close Button */}
-          <div className="h-12 border-b border-slate-100 px-6 flex items-center justify-between bg-white shrink-0">
-            <h2 className="text-xs sm:text-sm font-semibold text-slate-800">
-              Trending Hits (Current Playlist)
-            </h2>
+        <div className="fixed top-0 bottom-14 left-0 right-0 mx-auto w-full max-w-[1300px] z-50 flex flex-col bg-white shadow-2xl border-x border-slate-200 animate-fade-in select-none">
+          {/* Overlay Header: Left Title + Artwork + Right Clean Close Button (Matching Sefon Screenshot) */}
+          <div className="h-11 border-b border-slate-100 px-4 sm:px-6 flex items-center justify-between bg-white shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-slate-100 shadow-2xs">
+                {currentTrack.coverUrl ? (
+                  <img src={currentTrack.coverUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-[#365377]" />
+                )}
+              </div>
+              <h2 className="text-xs sm:text-sm font-semibold text-slate-800 truncate">
+                {currentTrack.title} — {currentTrack.artist.name} (current playlist)
+              </h2>
+            </div>
             <button
               onClick={() => setQueueModalOpen(false)}
-              className="p-1.5 text-slate-400 hover:text-slate-800 rounded transition-colors focus:outline-none"
+              className="p-1 text-slate-400 hover:text-slate-800 rounded transition-colors focus:outline-none"
               aria-label="Close Playlist View"
             >
               <X className="w-4.5 h-4.5" />
@@ -298,218 +296,24 @@ export function MusicPlayer() {
           {/* Overlay Content Area: Left Queue Tracks + Right Category Accordions */}
           <div className="flex-1 flex overflow-hidden">
             {/* Left: Tracks List */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-1">
+            <div className="flex-1 overflow-y-auto p-2 sm:p-4 divide-y divide-slate-100">
               {queue.length === 0 ? (
                 <div className="py-20 text-center text-sm text-slate-400">
                   Queue is empty. Click on any track to start listening.
                 </div>
               ) : (
-                queue.map((track, idx) => {
-                  const isSelected = idx === currentIndex;
-                  const isTrackLiked = likedTrackIds[track.id] ?? false;
-                  const isTrackDisliked = dislikedTrackIds[track.id] ?? false;
-                  const displayLikes = (track.likesCount || 816) + (isTrackLiked ? 1 : 0);
-                  const displayDislikes = (track.dislikesCount || 203) + (isTrackDisliked ? 1 : 0);
-
-                  return (
-                    <div
-                      key={`${track.id}-${idx}`}
-                      onClick={() => playTrack(track)}
-                      className="group flex items-center justify-between py-2.5 px-3 rounded hover:bg-slate-50/70 cursor-pointer transition-colors"
-                    >
-                      {/* Left: Circular Play/Pause button + Title & Artist */}
-                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isSelected) {
-                              togglePlay();
-                            } else {
-                              playTrack(track);
-                            }
-                          }}
-                          className={cn(
-                            "w-10 h-10 rounded-full border flex items-center justify-center shrink-0 transition-colors",
-                            isSelected && isPlaying
-                              ? "border-[#365377] text-[#365377] bg-white"
-                              : "border-slate-300 text-slate-600 bg-white hover:border-slate-400"
-                          )}
-                          aria-label={isSelected && isPlaying ? "Pause" : "Play"}
-                        >
-                          {isSelected && isPlaying ? (
-                            <Pause className="w-4 h-4 fill-current" />
-                          ) : (
-                            <Play className="w-4 h-4 fill-current ml-0.5" />
-                          )}
-                        </button>
-                        <div className="min-w-0 flex-1">
-                          <h4 className="text-xs sm:text-sm font-semibold truncate leading-tight text-slate-900">
-                            {track.artist.name}
-                          </h4>
-                          <p className="text-[11px] sm:text-xs text-slate-400 truncate mt-0.5">
-                            {track.title}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Right: Actions (Date + Likes + Dislikes + Plus + Download on Active/Hover) */}
-                      {isSelected ? (
-                        <div className="flex items-center gap-3.5 text-slate-400 text-xs shrink-0 select-none">
-                          {/* Date */}
-                          {track.releaseDate && (
-                            <span className="text-[11px] text-slate-400 font-normal">
-                              {formatReleaseDate(track.releaseDate)}
-                            </span>
-                          )}
-
-                          {/* Likes */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleTrackLike(track.id);
-                            }}
-                            className={cn(
-                              "flex items-center gap-1 transition-colors focus:outline-none",
-                              isTrackLiked ? "text-red-500 font-medium" : "text-slate-400 hover:text-red-500"
-                            )}
-                            aria-label="Like track"
-                          >
-                            <Heart className={cn("w-3.5 h-3.5", isTrackLiked && "fill-current")} />
-                            <span className="text-[11px] font-medium">{formatNumber(displayLikes)}</span>
-                          </button>
-
-                          {/* Dislikes (Red border/color on hover and active) */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleTrackDislike(track.id);
-                            }}
-                            className={cn(
-                              "flex items-center gap-1 transition-colors focus:outline-none",
-                              isTrackDisliked ? "text-red-500 font-medium" : "text-slate-400 hover:text-red-500"
-                            )}
-                            aria-label="Dislike track"
-                          >
-                            <HeartCrack className={cn("w-3.5 h-3.5", isTrackDisliked ? "text-red-500" : "text-slate-400 group-hover:text-slate-500 hover:text-red-500")} />
-                            <span className="text-[11px] font-medium">{formatNumber(displayDislikes)}</span>
-                          </button>
-
-                          {/* Plus */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              alert(`Added "${track.title}" to playlist`);
-                            }}
-                            className="p-1 text-slate-400 hover:text-slate-700 transition-colors focus:outline-none"
-                            aria-label="Add to Playlist"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-
-                          {/* Download */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              alert(`Downloading "${track.title}" (mock)`);
-                            }}
-                            className="p-1 text-slate-400 hover:text-slate-700 transition-colors focus:outline-none"
-                            aria-label="Download track"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center text-slate-400 text-xs shrink-0 select-none">
-                          {/* Hover State: Date + Likes + Dislikes + Plus + Download */}
-                          <div className="hidden group-hover:flex items-center gap-3.5">
-                            {track.releaseDate && (
-                              <span className="text-[11px] text-slate-400 font-normal">
-                                {formatReleaseDate(track.releaseDate)}
-                              </span>
-                            )}
-
-                            {/* Likes */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleTrackLike(track.id);
-                              }}
-                              className={cn(
-                                "flex items-center gap-1 transition-colors focus:outline-none",
-                                isTrackLiked ? "text-red-500 font-medium" : "text-slate-400 hover:text-red-500"
-                              )}
-                              aria-label="Like track"
-                            >
-                              <Heart className={cn("w-3.5 h-3.5", isTrackLiked && "fill-current")} />
-                              <span className="text-[11px] font-medium">{formatNumber(displayLikes)}</span>
-                            </button>
-
-                            {/* Dislikes (Red border/color on hover and active) */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleTrackDislike(track.id);
-                              }}
-                              className={cn(
-                                "flex items-center gap-1 transition-colors focus:outline-none",
-                                isTrackDisliked ? "text-red-500 font-medium" : "text-slate-400 hover:text-red-500"
-                              )}
-                              aria-label="Dislike track"
-                            >
-                              <HeartCrack className={cn("w-3.5 h-3.5", isTrackDisliked ? "text-red-500" : "text-slate-400 hover:text-red-500")} />
-                              <span className="text-[11px] font-medium">{formatNumber(displayDislikes)}</span>
-                            </button>
-
-                            {/* Plus */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                alert(`Added "${track.title}" to playlist`);
-                              }}
-                              className="p-1 text-slate-400 hover:text-slate-700 transition-colors focus:outline-none"
-                              aria-label="Add to Playlist"
-                            >
-                              <Plus className="w-4 h-4" />
-                            </button>
-
-                            {/* Download */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                alert(`Downloading "${track.title}" (mock)`);
-                              }}
-                              className="p-1 text-slate-400 hover:text-slate-700 transition-colors focus:outline-none"
-                              aria-label="Download track"
-                            >
-                              <Download className="w-4 h-4" />
-                            </button>
-                          </div>
-
-                          {/* Default Non-Hover State: Plus + Duration */}
-                          <div className="group-hover:hidden flex items-center gap-3">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                alert(`Added "${track.title}" to playlist`);
-                              }}
-                              className="p-1 hover:text-slate-700 transition-colors focus:outline-none"
-                              aria-label="Add to Playlist"
-                            >
-                              <Plus className="w-4 h-4" />
-                            </button>
-                            <span className="text-slate-400 text-xs min-w-[36px] text-right font-medium">
-                              {formatDuration(track.duration, true)}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
+                queue.map((track, idx) => (
+                  <TrackRow
+                    key={`queue-${track.id}-${idx}`}
+                    track={track}
+                    index={idx}
+                    playlistTracks={queue}
+                  />
+                ))
               )}
             </div>
 
-            {/* Right: Category Tabs Accordion */}
+            {/* Right: Category Tabs Accordion (Matching Sefon Screenshot) */}
             <div className="hidden md:block w-64 border-l border-slate-100 p-4 space-y-1 overflow-y-auto bg-white">
               {/* 1. My Playlists */}
               <div className="border-b border-slate-100">
