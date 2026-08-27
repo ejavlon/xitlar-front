@@ -14,7 +14,7 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
       className="group flex flex-col items-center text-center select-none cursor-pointer w-full"
     >
       {/* Square Rounded Card Image */}
-      <div className="w-full aspect-square rounded-xl overflow-hidden relative shadow-xs bg-slate-100 mb-2 border border-slate-200/80">
+      <div className="w-full aspect-square rounded-lg overflow-hidden relative shadow-xs bg-slate-100 mb-1.5 border border-slate-200/80">
         <img
           src={playlist.coverUrl}
           alt={playlist.title}
@@ -24,7 +24,7 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
       </div>
 
       {/* Title */}
-      <h4 className="text-[13px] font-bold text-slate-800 group-hover:text-[#365377] transition-colors truncate w-full text-center">
+      <h4 className="text-[12px] font-bold text-slate-800 group-hover:text-[#365377] transition-colors truncate w-full text-center">
         {playlist.title}
       </h4>
     </Link>

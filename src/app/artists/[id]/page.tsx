@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { Artist } from "../../../types/artist";
 import { Track } from "../../../types/track";
 import { artistService, ArtistTrackSortMode } from "../../../services/artist.service";
@@ -14,9 +15,49 @@ import {
   Loader,
   ArrowLeft,
   Check,
-  Plus
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  MessageSquare,
+  Send
 } from "lucide-react";
 import { cn } from "../../../lib/utils";
+
+interface CommentItem {
+  id: string;
+  author: string;
+  date: string;
+  text: string;
+}
+
+const DEFAULT_COMMENTS: CommentItem[] = [
+  {
+    id: "c1",
+    author: "Dimon",
+    date: "19 March at 13:58",
+    text: "An absolute genius who inspired generations and set the standard for lyricism. Endless respect."
+  },
+  {
+    id: "c2",
+    author: "Alex_99",
+    date: "15 March at 01:47",
+    text: "Lose Yourself and Without Me are timeless masterpieces. Listening in 2026 and still giving goosebumps!"
+  },
+  {
+    id: "c3",
+    author: "Maximus",
+    date: "23 January at 21:05",
+    text: "The greatest rapper of all time. Every single album is packed with storytelling and energy."
+  },
+  {
+    id: "c4",
+    author: "Elena Star ❤️",
+    date: "04 January at 00:54",
+    text: "His flow and charisma are unmatched. The legendary king of the rap industry! 🔥"
+  }
+];
+
+const ITEMS_PER_PAGE = 8;
 
 export default function ArtistDetailPage() {
   const params = useParams();
@@ -25,9 +66,19 @@ export default function ArtistDetailPage() {
 
   const [artist, setArtist] = useState<Artist | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [similarArtists, setSimilarArtists] = useState<Artist[]>([]);
   const [activeTab, setActiveTab] = useState<ArtistTrackSortMode>("popular");
+  const [relatedTab, setRelatedTab] = useState<"similar" | "genre">("similar");
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Comments state
+  const [comments, setComments] = useState<CommentItem[]>(DEFAULT_COMMENTS);
+  const [commentAuthor, setCommentAuthor] = useState("Javlon");
+  const [commentText, setCommentText] = useState("");
 
   const { playQueue } = usePlayerStore();
 
@@ -36,12 +87,18 @@ export default function ArtistDetailPage() {
       if (!id) return;
       try {
         setLoading(true);
-        const artistData = await artistService.getArtistById(id);
+        const [artistData, similarData] = await Promise.all([
+          artistService.getArtistById(id),
+          artistService.getSimilarArtists(id)
+        ]);
+
         setArtist(artistData);
+        setSimilarArtists(similarData);
 
         if (artistData) {
           const tracksData = await artistService.getTracksByArtist(id, activeTab);
           setTracks(tracksData);
+          setCurrentPage(1);
         }
       } catch (err) {
         console.error("Error fetching artist detail:", err);
@@ -65,6 +122,28 @@ export default function ArtistDetailPage() {
       alert("Artist link copied to clipboard!");
     }
   };
+
+  const handleCommentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+
+    const newComment: CommentItem = {
+      id: "c-" + Date.now(),
+      author: commentAuthor.trim() || "Anonymous",
+      date: "Just now",
+      text: commentText.trim()
+    };
+
+    setComments([newComment, ...comments]);
+    setCommentText("");
+  };
+
+  // Pagination calculations
+  const totalPages = Math.max(1, Math.ceil(tracks.length / ITEMS_PER_PAGE));
+  const paginatedTracks = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return tracks.slice(start, start + ITEMS_PER_PAGE);
+  }, [tracks, currentPage]);
 
   if (loading) {
     return (
@@ -93,8 +172,10 @@ export default function ArtistDetailPage() {
     );
   }
 
+  const primaryGenre = artist.genres[0] || "Pop";
+
   return (
-    <div className="space-y-6 select-none">
+    <div className="space-y-8 select-none pb-12">
       {/* Back button */}
       <button
         onClick={() => router.back()}
@@ -104,7 +185,7 @@ export default function ArtistDetailPage() {
         <span>Back</span>
       </button>
 
-      {/* Artist Hero Header (Matches Screenshot 4) */}
+      {/* Artist Hero Header */}
       <section className="flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-6 border-b border-slate-100">
         {/* Large Round Avatar */}
         <div className="w-32 h-32 md:w-36 md:h-36 rounded-full overflow-hidden border-2 border-slate-200 shadow-sm shrink-0 bg-slate-100">
@@ -144,10 +225,10 @@ export default function ArtistDetailPage() {
               <Star className="w-3.5 h-3.5 text-slate-200 fill-slate-200" />
             </div>
             <span className="font-bold text-slate-700">{artist.rating || 4.7}</span>
-            <span className="text-slate-400 text-[11px]">(votes: 13,209)</span>
+            <span className="text-slate-400 text-[11px]">(votes: 13,221)</span>
           </div>
 
-          {/* Action Buttons (Matches Screenshot 4) */}
+          {/* Action Buttons */}
           <div className="flex items-center justify-center sm:justify-start gap-2.5 pt-3">
             {/* Play All Yellow Button */}
             <button
@@ -193,7 +274,7 @@ export default function ArtistDetailPage() {
         </div>
       </section>
 
-      {/* Tabs and Sorted Tracks List (Matches Screenshot 4) */}
+      {/* Tracks Section with Tabs */}
       <section className="space-y-4">
         {/* Tabs: POPULAR | ALPHABETICAL | BY DATE */}
         <div className="flex items-center gap-6 border-b border-slate-200 text-xs font-bold uppercase tracking-wider select-none">
@@ -220,10 +301,183 @@ export default function ArtistDetailPage() {
           ))}
         </div>
 
-        {/* Tracks display */}
-        <TrackList tracks={tracks} fallbackText="This artist has no tracks in this category." />
+        {/* Paginated Tracks display */}
+        <TrackList tracks={paginatedTracks} fallbackText="This artist has no tracks in this category." />
+
+        {/* 1. PAGINATION CONTROLS (Matches Box 1) */}
+        {totalPages > 1 && (
+          <div className="flex items-center gap-1.5 pt-4 select-none">
+            {/* Previous Page Button */}
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className={cn(
+                "w-8 h-8 rounded border border-slate-200 flex items-center justify-center text-xs text-slate-600 transition-colors focus:outline-none",
+                currentPage === 1
+                  ? "opacity-40 cursor-not-allowed bg-slate-50"
+                  : "hover:bg-slate-100 hover:border-slate-300"
+              )}
+              aria-label="Previous Page"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            {/* Page Numbers */}
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+              <button
+                key={pageNum}
+                onClick={() => setCurrentPage(pageNum)}
+                className={cn(
+                  "w-8 h-8 rounded text-xs font-semibold transition-colors flex items-center justify-center border",
+                  currentPage === pageNum
+                    ? "bg-amber-400 border-amber-400 text-slate-900 font-bold shadow-xs"
+                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                )}
+              >
+                {pageNum}
+              </button>
+            ))}
+
+            {/* Next Page Button */}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className={cn(
+                "w-8 h-8 rounded border border-slate-200 flex items-center justify-center text-xs text-slate-600 transition-colors focus:outline-none",
+                currentPage === totalPages
+                  ? "opacity-40 cursor-not-allowed bg-slate-50"
+                  : "hover:bg-slate-100 hover:border-slate-300"
+              )}
+              aria-label="Next Page"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* 2. SIMILAR ARTISTS & POPULAR IN GENRE SECTION (Matches Box 2) */}
+      <section className="space-y-4 pt-6 border-t border-slate-100">
+        {/* Tabs: SIMILAR | POPULAR [GENRE] */}
+        <div className="flex items-center gap-6 border-b border-slate-200 text-xs font-bold uppercase tracking-wider select-none">
+          <button
+            onClick={() => setRelatedTab("similar")}
+            className={cn(
+              "relative pb-2.5 transition-colors focus:outline-none",
+              relatedTab === "similar"
+                ? "text-amber-500 font-extrabold"
+                : "text-slate-500 hover:text-slate-800"
+            )}
+          >
+            SIMILAR
+            {relatedTab === "similar" && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 rounded-full" />
+            )}
+          </button>
+
+          <button
+            onClick={() => setRelatedTab("genre")}
+            className={cn(
+              "relative pb-2.5 transition-colors focus:outline-none",
+              relatedTab === "genre"
+                ? "text-amber-500 font-extrabold"
+                : "text-slate-500 hover:text-slate-800"
+            )}
+          >
+            POPULAR {primaryGenre.toUpperCase()}
+            {relatedTab === "genre" && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 rounded-full" />
+            )}
+          </button>
+        </div>
+
+        {/* Similar Artists Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4 pt-1">
+          {similarArtists.slice(0, 6).map((simArtist) => (
+            <Link
+              key={simArtist.id}
+              href={`/artists/${simArtist.id}`}
+              className="group flex flex-col items-center text-center select-none cursor-pointer"
+            >
+              <div className="w-full aspect-square rounded-xl overflow-hidden relative shadow-xs bg-slate-100 mb-2 border border-slate-200/80">
+                <img
+                  src={simArtist.avatarUrl}
+                  alt={simArtist.name}
+                  className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105 group-hover:brightness-95"
+                  loading="lazy"
+                />
+              </div>
+              <h4 className="text-xs font-bold text-slate-800 group-hover:text-[#365377] transition-colors truncate w-full text-center">
+                {simArtist.name}
+              </h4>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* 3. COMMENTS SECTION (Matches Box 3) */}
+      <section className="space-y-4 pt-6 border-t border-slate-100">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="w-4 h-4 text-[#365377]" />
+          <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+            Comments ({comments.length})
+          </h2>
+        </div>
+
+        {/* Comment Form */}
+        <form onSubmit={handleCommentSubmit} className="space-y-3 max-w-2xl">
+          {/* Author Name Input */}
+          <input
+            type="text"
+            placeholder="Your name..."
+            value={commentAuthor}
+            onChange={(e) => setCommentAuthor(e.target.value)}
+            className="w-full sm:w-64 bg-slate-50 border border-slate-200 rounded-md px-3.5 py-1.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-[#365377] transition-colors"
+          />
+
+          {/* Comment Textarea */}
+          <textarea
+            rows={3}
+            placeholder="Leave your comment or thoughts about this artist..."
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-200 rounded-md px-3.5 py-2 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-[#365377] transition-colors resize-none"
+          />
+
+          {/* Submit Button */}
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={!commentText.trim()}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-5 py-2 rounded-md text-xs font-bold transition-all focus:outline-none shadow-xs",
+                commentText.trim()
+                  ? "bg-[#365377] hover:bg-[#284160] text-white cursor-pointer"
+                  : "bg-slate-200 text-slate-400 cursor-not-allowed"
+              )}
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Post comment</span>
+            </button>
+          </div>
+        </form>
+
+        {/* Comments List */}
+        <div className="space-y-3 pt-2 max-w-2xl">
+          {comments.map((comment) => (
+            <div
+              key={comment.id}
+              className="p-3.5 rounded-lg bg-slate-50 border border-slate-200/80 space-y-1.5"
+            >
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-bold text-slate-800">{comment.author}</span>
+                <span className="text-slate-400">{comment.date}</span>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">{comment.text}</p>
+            </div>
+          ))}
+        </div>
       </section>
     </div>
   );
 }
-

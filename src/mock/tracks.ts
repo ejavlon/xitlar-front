@@ -571,5 +571,89 @@ export const mockTracks: Track[] = [
     bitrate: 1411,
     sampleRate: 48000,
     format: "flac"
+  },
+
+  // Dua Lipa
+  {
+    id: "dl-levitating",
+    title: "Levitating",
+    artist: getArtist("dua-lipa"),
+    album: {
+      id: "dl-future-nostalgia",
+      title: "Future Nostalgia",
+      coverUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&h=500&fit=crop&q=80",
+      releaseDate: "2020-03-27"
+    },
+    coverUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&h=500&fit=crop&q=80",
+    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3",
+    duration: 203,
+    releaseDate: "2020-10-01",
+    likesCount: 2400000,
+    dislikesCount: 18000,
+    bitrate: 320,
+    sampleRate: 44100,
+    format: "mp3"
+  },
+  {
+    id: "dl-dont-start-now",
+    title: "Don't Start Now",
+    artist: getArtist("dua-lipa"),
+    album: {
+      id: "dl-future-nostalgia",
+      title: "Future Nostalgia",
+      coverUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&h=500&fit=crop&q=80",
+      releaseDate: "2020-03-27"
+    },
+    coverUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&h=500&fit=crop&q=80",
+    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3",
+    duration: 183,
+    releaseDate: "2019-10-31",
+    likesCount: 3100000,
+    dislikesCount: 22000,
+    bitrate: 320,
+    sampleRate: 44100,
+    format: "mp3"
+  },
+
+  // Imagine Dragons
+  {
+    id: "id-believer",
+    title: "Believer",
+    artist: getArtist("imagine-dragons"),
+    album: {
+      id: "id-evolve",
+      title: "Evolve",
+      coverUrl: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=500&h=500&fit=crop&q=80",
+      releaseDate: "2017-06-23"
+    },
+    coverUrl: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=500&h=500&fit=crop&q=80",
+    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+    duration: 204,
+    releaseDate: "2017-02-01",
+    likesCount: 5200000,
+    dislikesCount: 35000,
+    bitrate: 320,
+    sampleRate: 44100,
+    format: "mp3"
+  },
+  {
+    id: "id-radioactive",
+    title: "Radioactive",
+    artist: getArtist("imagine-dragons"),
+    album: {
+      id: "id-night-visions",
+      title: "Night Visions",
+      coverUrl: "https://images.unsplash.com/photo-1464375117522-1311d6a5b81f?w=500&h=500&fit=crop&q=80",
+      releaseDate: "2012-09-04"
+    },
+    coverUrl: "https://images.unsplash.com/photo-1464375117522-1311d6a5b81f?w=500&h=500&fit=crop&q=80",
+    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+    duration: 187,
+    releaseDate: "2012-10-29",
+    likesCount: 4100000,
+    dislikesCount: 29000,
+    bitrate: 320,
+    sampleRate: 44100,
+    format: "mp3"
   }
 ];

@@ -100,5 +100,25 @@ export const mockArtists: Artist[] = [
     genres: ["instrumental", "retro"],
     rating: 4.9,
     bio: "Hans Florian Zimmer is a German film score composer and music producer. He has won two Oscars and four Grammys, and was nominated for two Emmys and a Tony. His works are notable for integrating electronic music sounds with traditional orchestral arrangements."
+  },
+  {
+    id: "dua-lipa",
+    name: "Dua Lipa",
+    avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&q=80",
+    coverUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&h=450&fit=crop&q=80",
+    trackCount: 54,
+    genres: ["pop", "dance", "disco"],
+    rating: 4.8,
+    bio: "Dua Lipa is an English and Albanian singer and songwriter. Known for her signature mezzo-soprano vocal range and disco-pop sound."
+  },
+  {
+    id: "imagine-dragons",
+    name: "Imagine Dragons",
+    avatarUrl: "https://images.unsplash.com/photo-1464375117522-1311d6a5b81f?w=400&h=400&fit=crop&q=80",
+    coverUrl: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&h=450&fit=crop&q=80",
+    trackCount: 86,
+    genres: ["rock", "pop", "electronic"],
+    rating: 4.8,
+    bio: "Imagine Dragons is an American pop rock band from Las Vegas, Nevada, consisting of lead singer Dan Reynolds, guitarist Wayne Sermon, and bassist Ben McKee."
   }
 ];

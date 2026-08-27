@@ -231,16 +231,10 @@ export default function ProfilePage() {
                 <span className="text-xs text-slate-500">
                   {userPlaylists.length} playlists
                 </span>
-                <button
-                  onClick={() => alert("Create playlist (presentation state)")}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#365377] hover:bg-[#2d4665] text-white text-xs font-medium rounded-md transition-colors shadow-xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Create Playlist</span>
-                </button>
               </div>
               <PlaylistGrid
                 playlists={userPlaylists}
+                showCreateCard={true}
                 fallbackText="No user playlists found."
               />
             </div>

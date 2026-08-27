@@ -8,6 +8,7 @@ export interface ArtistRepository {
   getArtistById(id: string): Promise<Artist | null>;
   getTracksByArtist(artistId: string): Promise<Track[]>;
   searchArtists(query: string): Promise<Artist[]>;
+  getSimilarArtists(artistId: string): Promise<Artist[]>;
 }
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -38,6 +39,25 @@ export class MockArtistRepository implements ArtistRepository {
         a.name.toLowerCase().includes(q) ||
         a.genres.some((g) => g.toLowerCase().includes(q))
     );
+  }
+
+  async getSimilarArtists(artistId: string): Promise<Artist[]> {
+    await delay(150);
+    const current = mockArtists.find((a) => a.id === artistId);
+    if (!current) return mockArtists.slice(0, 6);
+
+    // Find artists that share at least one genre
+    const sameGenre = mockArtists.filter(
+      (a) => a.id !== artistId && a.genres.some((g) => current.genres.includes(g))
+    );
+
+    if (sameGenre.length >= 6) {
+      return sameGenre.slice(0, 6);
+    }
+
+    // Fill with remaining other artists
+    const others = mockArtists.filter((a) => a.id !== artistId && !sameGenre.includes(a));
+    return [...sameGenre, ...others].slice(0, 6);
   }
 }
 

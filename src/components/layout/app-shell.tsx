@@ -22,20 +22,20 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="min-h-screen w-full bg-[#0c1522] flex justify-center text-slate-800 font-sans overflow-x-hidden">
-      {/* 1300px Single Unified Website Container */}
-      <div className="w-full max-w-[1300px] min-h-screen bg-white flex flex-col shadow-2xl relative">
+      {/* 1100px Unified Website Container */}
+      <div className="w-full max-w-[1100px] min-h-screen bg-white flex flex-col shadow-2xl relative">
         {/* 1. Header (Sticky / Top of Container) */}
         <Header onMenuToggle={toggleMobileMenu} />
 
         {/* 2. Main Content & Right Sidebar (Inside the single container) */}
         <div className="flex-1 flex flex-col lg:flex-row pb-24 relative bg-white">
           {/* Main Content Area (Left / Center) */}
-          <main className="flex-1 min-w-0 p-4 sm:p-6 bg-white">
+          <main className="flex-1 min-w-0 p-4 sm:p-5 bg-white">
             {children}
           </main>
 
           {/* Right Column: Desktop Navigation Sidebar */}
-          <aside className="hidden lg:block w-[280px] shrink-0 p-4 border-l border-slate-100 bg-white">
+          <aside className="hidden lg:block w-[250px] shrink-0 p-4 border-l border-slate-100 bg-white">
             <Sidebar />
           </aside>
         </div>

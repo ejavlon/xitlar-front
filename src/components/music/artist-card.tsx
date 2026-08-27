@@ -14,7 +14,7 @@ export function ArtistCard({ artist }: ArtistCardProps) {
       className="group flex flex-col items-center text-center select-none cursor-pointer w-full"
     >
       {/* Square Rounded Card Image */}
-      <div className="w-full aspect-square rounded-xl overflow-hidden relative shadow-xs bg-slate-100 mb-2 border border-slate-200/80">
+      <div className="w-full aspect-square rounded-lg overflow-hidden relative shadow-xs bg-slate-100 mb-1.5 border border-slate-200/80">
         <img
           src={artist.avatarUrl}
           alt={artist.name}
@@ -24,7 +24,7 @@ export function ArtistCard({ artist }: ArtistCardProps) {
       </div>
 
       {/* Artist Name */}
-      <h4 className="text-[13px] font-bold text-slate-800 group-hover:text-[#365377] transition-colors truncate w-full text-center">
+      <h4 className="text-[12px] font-bold text-slate-800 group-hover:text-[#365377] transition-colors truncate w-full text-center">
         {artist.name}
       </h4>
     </Link>

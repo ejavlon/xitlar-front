@@ -41,6 +41,10 @@ export class ArtistService {
   async searchArtists(query: string): Promise<Artist[]> {
     return this.repository.searchArtists(query);
   }
+
+  async getSimilarArtists(artistId: string): Promise<Artist[]> {
+    return this.repository.getSimilarArtists(artistId);
+  }
 }
 
 export const artistService = new ArtistService();

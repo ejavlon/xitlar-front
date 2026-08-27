@@ -70,16 +70,16 @@ export default function HomePage() {
   }
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-5">
       {/* 1. POPULAR ARTISTS SECTION (Matches Screenshot 1) */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between pb-1">
-          <h2 className="text-base sm:text-[18px] font-bold text-slate-900 tracking-tight">
+      <section className="space-y-2.5">
+        <div className="flex items-center justify-between pb-0.5">
+          <h2 className="text-[15px] sm:text-[16px] font-bold text-slate-900 tracking-tight">
             Popular Artists
           </h2>
           <Link
             href="/artists"
-            className="text-[13px] sm:text-[14px] text-slate-400 hover:text-[#365377] font-medium transition-colors"
+            className="text-xs text-slate-400 hover:text-[#365377] font-medium transition-colors"
           >
             View all
           </Link>
@@ -88,14 +88,14 @@ export default function HomePage() {
       </section>
 
       {/* 2. TRENDING HITS / POPULAR TRACKS SECTION (Matches Screenshot 1) */}
-      <section className="space-y-3 pt-5 border-t border-slate-100">
-        <div className="flex items-center justify-between pb-1">
-          <h2 className="text-base sm:text-[18px] font-bold text-slate-900 tracking-tight">
+      <section className="space-y-2.5 pt-4 border-t border-slate-100">
+        <div className="flex items-center justify-between pb-0.5">
+          <h2 className="text-[15px] sm:text-[16px] font-bold text-slate-900 tracking-tight">
             Trending Hits
           </h2>
           <Link
             href="/search"
-            className="text-[13px] sm:text-[14px] text-slate-400 hover:text-[#365377] font-medium transition-colors"
+            className="text-xs text-slate-400 hover:text-[#365377] font-medium transition-colors"
           >
             View all
           </Link>
@@ -104,14 +104,14 @@ export default function HomePage() {
       </section>
 
       {/* 3. MUSIC COLLECTIONS / PLAYLISTS SECTION (Matches Screenshot 1) */}
-      <section className="space-y-3 pt-5 border-t border-slate-100">
-        <div className="flex items-center justify-between pb-1">
-          <h2 className="text-base sm:text-[18px] font-bold text-slate-900 tracking-tight">
+      <section className="space-y-2.5 pt-4 border-t border-slate-100">
+        <div className="flex items-center justify-between pb-0.5">
+          <h2 className="text-[15px] sm:text-[16px] font-bold text-slate-900 tracking-tight">
             Music Collections
           </h2>
           <Link
             href="/collections"
-            className="text-[13px] sm:text-[14px] text-slate-400 hover:text-[#365377] font-medium transition-colors"
+            className="text-xs text-slate-400 hover:text-[#365377] font-medium transition-colors"
           >
             View all
           </Link>

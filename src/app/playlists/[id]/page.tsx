@@ -9,6 +9,7 @@ import { TrackRow } from "../../../components/music/track-row";
 import { PlaylistGrid } from "../../../components/music/playlist-grid";
 import { formatDuration } from "../../../lib/formatters";
 import { cn } from "../../../lib/utils";
+import { mockPlaylists } from "../../../mock/playlists";
 import {
   Play,
   Share2,
@@ -18,7 +19,10 @@ import {
   Plus,
   RotateCw,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  X,
+  Disc,
+  Music2
 } from "lucide-react";
 
 interface CommentItem {
@@ -72,10 +76,10 @@ export default function PlaylistDetailPage() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Comments state
   const [comments, setComments] = useState<CommentItem[]>(INITIAL_COMMENTS);
   const [commentAuthor, setCommentAuthor] = useState("Javlon");
   const [commentText, setCommentText] = useState("");
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const { playQueue } = usePlayerStore();
 
@@ -91,9 +95,9 @@ export default function PlaylistDetailPage() {
         ]);
 
         if (data) {
-          // If tracks are few, supplement with popular tracks
+          // If it is a curated collection, supplement tracks if few; if it is a user playlist, keep only its actual tracks!
           let fullTracks = data.tracks || [];
-          if (fullTracks.length < 8) {
+          if (data.isCollection && fullTracks.length < 8) {
             fullTracks = [...fullTracks, ...allTracks.slice(0, 10 - fullTracks.length)];
           }
           setPlaylist({ ...data, tracks: fullTracks });
@@ -123,6 +127,14 @@ export default function PlaylistDetailPage() {
       navigator.clipboard.writeText(window.location.href);
       alert("Collection link copied to clipboard!");
     }
+  };
+
+  const handleDeletePlaylist = () => {
+    const idx = mockPlaylists.findIndex((p) => p.id === id);
+    if (idx !== -1) {
+      mockPlaylists.splice(idx, 1);
+    }
+    router.push("/profile?tab=playlists");
   };
 
   const handleAddComment = (e: React.FormEvent) => {
@@ -182,7 +194,7 @@ export default function PlaylistDetailPage() {
     });
   }
 
-  const totalDuration = rawTracks.reduce((acc, t) => acc + t.duration, 0);
+  const totalDuration = rawTracks.reduce((acc, t) => acc + (t.duration || 0), 0);
 
   return (
     <div className="space-y-7 select-none animate-fade-in font-sans">
@@ -196,63 +208,124 @@ export default function PlaylistDetailPage() {
       </button>
 
       {/* 1. HERO HEADER SECTION (Matching Sefon Screenshot 2) */}
-      <section className="flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-6 border-b border-slate-100">
-        {/* Large Round Avatar Artwork */}
-        <div className="w-32 h-32 md:w-36 md:h-36 rounded-full overflow-hidden border-2 border-slate-200 shadow-sm shrink-0 bg-slate-100">
-          <img
-            src={playlist.coverUrl}
-            alt={playlist.title}
-            className="w-full h-full object-cover"
-          />
+      <section className="relative flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-6 border-b border-slate-100">
+        {/* Top-Right Delete (X) Button with Confirmation Popover */}
+        <div className="absolute top-0 right-0 z-20">
+          <button
+            type="button"
+            onClick={() => setIsDeleteModalOpen(!isDeleteModalOpen)}
+            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors focus:outline-none cursor-pointer"
+            aria-label="Delete playlist"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* Delete Confirmation Popover (Matches Screenshot) */}
+          {isDeleteModalOpen && (
+            <div className="absolute right-0 top-9 w-60 sm:w-64 p-3.5 bg-[#456690] text-white rounded-xl shadow-2xl border border-[#38557a] z-50 animate-fade-in text-center select-none">
+              <p className="text-xs font-medium text-white/95 leading-snug mb-3">
+                Do you really want to delete the playlist?
+              </p>
+              <div className="flex items-center justify-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleDeletePlaylist}
+                  className="px-3.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-900 text-xs font-bold rounded-full transition-colors shadow-2xs cursor-pointer focus:outline-none"
+                >
+                  Yes, delete
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="px-3.5 py-1 bg-white hover:bg-slate-100 text-slate-800 text-xs font-semibold rounded-full transition-colors shadow-2xs cursor-pointer focus:outline-none"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Collection Meta Details */}
+        {/* Large Round Avatar Artwork */}
+        <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border border-slate-200 shadow-sm shrink-0 bg-slate-100 flex items-center justify-center text-slate-400">
+          {!playlist.isCollection && rawTracks.length === 0 ? (
+            <Disc className="w-16 h-16 stroke-[1.25] text-slate-400" />
+          ) : (
+            <img
+              src={playlist.coverUrl}
+              alt={playlist.title}
+              className="w-full h-full object-cover"
+            />
+          )}
+        </div>
+
+        {/* Collection / Playlist Meta Details */}
         <div className="flex-1 text-center sm:text-left space-y-2 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight truncate">
             {playlist.title}
           </h1>
 
           {/* Subtitle details: Date • Duration • Tracks */}
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 gap-y-1 text-xs text-slate-500 font-medium">
-            <span>21 August 2026</span>
-            <span>&bull;</span>
-            <span>{formatDuration(totalDuration || 12738)}</span>
-            <span>&bull;</span>
-            <span>{playlist.trackCount || rawTracks.length} tracks</span>
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 gap-y-1 text-xs text-slate-500 font-medium font-mono">
+            <span>{formatDuration(totalDuration || 0, true)}</span>
+            {playlist.isCollection && (
+              <>
+                <span>&bull;</span>
+                <span>21 August 2026</span>
+                <span>&bull;</span>
+                <span>{playlist.trackCount || rawTracks.length} tracks</span>
+              </>
+            )}
           </div>
 
           {/* Tags */}
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-0.5">
-            <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded">
-              #summer
-            </span>
-            <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded">
-              #vibe
-            </span>
-            <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded">
-              #collection
-            </span>
+            {playlist.isCollection ? (
+              <>
+                <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded">
+                  #summer
+                </span>
+                <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded">
+                  #vibe
+                </span>
+                <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded">
+                  #collection
+                </span>
+              </>
+            ) : (
+              <span className="text-[11.5px] font-medium text-slate-600 bg-white border border-slate-200 px-2.5 py-0.5 rounded-full shadow-2xs">
+                # playlists
+              </span>
+            )}
           </div>
 
-          {/* Rating */}
-          <div className="flex items-center justify-center sm:justify-start gap-1.5 pt-1 text-xs text-slate-500">
-            <div className="flex text-amber-400">
-              <Star className="w-3.5 h-3.5 fill-current" />
-              <Star className="w-3.5 h-3.5 fill-current" />
-              <Star className="w-3.5 h-3.5 fill-current" />
-              <Star className="w-3.5 h-3.5 fill-current" />
-              <Star className="w-3.5 h-3.5 text-slate-200 fill-slate-200" />
+          {/* Rating (Only for curated collections) */}
+          {playlist.isCollection && (
+            <div className="flex items-center justify-center sm:justify-start gap-1.5 pt-1 text-xs text-slate-500">
+              <div className="flex text-amber-400">
+                <Star className="w-3.5 h-3.5 fill-current" />
+                <Star className="w-3.5 h-3.5 fill-current" />
+                <Star className="w-3.5 h-3.5 fill-current" />
+                <Star className="w-3.5 h-3.5 fill-current" />
+                <Star className="w-3.5 h-3.5 text-slate-200 fill-slate-200" />
+              </div>
+              <span className="font-bold text-slate-700">4.2</span>
+              <span className="text-slate-400 text-[11px]">(votes: 13,409)</span>
             </div>
-            <span className="font-bold text-slate-700">4.2</span>
-            <span className="text-slate-400 text-[11px]">(votes: 13,409)</span>
-          </div>
+          )}
 
           {/* Action Buttons (Matches Screenshot 2) */}
           <div className="flex items-center justify-center sm:justify-start gap-2.5 pt-3">
             {/* Play All Yellow Button */}
             <button
               onClick={handlePlayAll}
-              className="flex items-center gap-2 px-5 py-1.5 bg-amber-400 hover:bg-amber-500 text-slate-900 text-xs font-bold rounded-full transition-colors shadow-xs focus:outline-none"
+              disabled={rawTracks.length === 0}
+              className={cn(
+                "flex items-center gap-2 px-5 py-1.5 text-xs font-bold rounded-full transition-colors shadow-xs focus:outline-none",
+                rawTracks.length > 0
+                  ? "bg-amber-400 hover:bg-amber-500 text-slate-900 cursor-pointer"
+                  : "bg-slate-200 text-slate-400 cursor-not-allowed"
+              )}
             >
               <Play className="w-3.5 h-3.5 fill-current" />
               <span>Listen</span>
@@ -269,7 +342,7 @@ export default function PlaylistDetailPage() {
 
             {/* Reload / Updates */}
             <button
-              onClick={() => alert("Collection refreshed!")}
+              onClick={() => alert("Playlist refreshed!")}
               className="w-8 h-8 rounded-full border border-slate-300 hover:border-slate-400 text-slate-600 flex items-center justify-center transition-colors focus:outline-none"
               aria-label="Refresh collection"
             >
@@ -288,47 +361,62 @@ export default function PlaylistDetailPage() {
         </div>
       </section>
 
-      {/* 2. TABS & SORTED TRACK LIST (Matching Sefon Screenshot 2 & 3) */}
+      {/* 2. TABS & TRACK LIST / SEARCH */}
       <section className="space-y-4">
-        {/* Tabs: BY DATE | BY POPULARITY | ALPHABETICAL */}
-        <div className="flex items-center gap-6 border-b border-slate-200 text-xs font-bold uppercase tracking-wider select-none">
-          {([
-            { key: "date", label: "BY DATE" },
-            { key: "popular", label: "BY POPULARITY" },
-            { key: "alphabetical", label: "ALPHABETICAL" }
-          ] as const).map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                "relative pb-2.5 transition-colors focus:outline-none",
-                activeTab === tab.key
-                  ? "text-amber-500 font-extrabold"
-                  : "text-slate-500 hover:text-slate-800"
-              )}
-            >
-              {tab.label}
-              {activeTab === tab.key && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 rounded-full" />
-              )}
-            </button>
-          ))}
-        </div>
+        {/* Track List or Empty State */}
+        {rawTracks.length === 0 ? (
+          /* Empty State (Matches Screenshot 2) */
+          <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            <Music2 className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+            <p className="text-xs sm:text-[13px] text-slate-500">
+              Add your first track to the playlist. Find it using the search bar above and click &ldquo;+&rdquo;.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Tabs: BY DATE | BY POPULARITY | ALPHABETICAL */}
+            <div className="flex items-center gap-6 border-b border-slate-200 text-xs font-bold uppercase tracking-wider select-none">
+              {([
+                { key: "date", label: "BY DATE" },
+                { key: "popular", label: "BY POPULARITY" },
+                { key: "alphabetical", label: "ALPHABETICAL" }
+              ] as const).map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={cn(
+                    "relative pb-2.5 transition-colors focus:outline-none",
+                    activeTab === tab.key
+                      ? "text-amber-500 font-extrabold"
+                      : "text-slate-500 hover:text-slate-800"
+                  )}
+                >
+                  {tab.label}
+                  {activeTab === tab.key && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 rounded-full" />
+                  )}
+                </button>
+              ))}
+            </div>
 
-        {/* Track Rows */}
-        <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden bg-white shadow-2xs">
-          {sortedTracks.map((track, idx) => (
-            <TrackRow
-              key={`${track.id}-${idx}`}
-              track={track}
-              index={idx}
-              playlistTracks={sortedTracks}
-            />
-          ))}
-        </div>
+            {/* Track Rows */}
+            <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden bg-white shadow-2xs">
+              {sortedTracks.map((track, idx) => (
+                <TrackRow
+                  key={`${track.id}-${idx}`}
+                  track={track}
+                  index={idx}
+                  playlistTracks={sortedTracks}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </section>
 
-        {/* 3. PAGINATION (Dynamic Sliding Window - Matching Sefon Pagination) */}
-        {(() => {
+      {/* 3. PAGINATION (Dynamic Sliding Window - Matching Sefon Pagination) */}
+      {rawTracks.length > 0 &&
+        (() => {
           const totalPages = 95;
           let start = Math.max(1, currentPage - 2);
           const end = Math.min(totalPages, start + 4);
@@ -414,7 +502,6 @@ export default function PlaylistDetailPage() {
             </div>
           );
         })()}
-      </section>
 
       {/* 4. SIMILAR COLLECTIONS SECTION (Matching Sefon Screenshot 3) */}
       <section className="space-y-3 pt-6 border-t border-slate-100">
@@ -482,4 +569,3 @@ export default function PlaylistDetailPage() {
     </div>
   );
 }
-

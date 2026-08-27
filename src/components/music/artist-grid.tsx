@@ -16,7 +16,7 @@ export function ArtistGrid({ artists, fallbackText = "No artists found" }: Artis
   }
 
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-4 w-full">
+    <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 sm:gap-5 w-full">
       {artists.map((artist) => (
         <ArtistCard key={artist.id} artist={artist} />
       ))}

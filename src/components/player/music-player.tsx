@@ -10,6 +10,8 @@ import { cn } from "../../lib/utils";
 import { MiniPlayer } from "./mini-player";
 import { VolumePopover } from "./volume-popover";
 import { EqualizerModal } from "./equalizer-modal";
+import { AddToPlaylistPopover } from "./add-to-playlist-popover";
+import { AudioQualityPopover } from "./audio-quality-popover";
 import { mockPlaylists } from "../../mock/playlists";
 import { mockArtists } from "../../mock/artists";
 import { mockTracks } from "../../mock/tracks";
@@ -60,17 +62,11 @@ export function MusicPlayer() {
     setIsLiked(false);
   }, [currentTrack]);
 
-  if (!currentTrack) {
-    return (
-      <div className="hidden lg:flex fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[1300px] h-14 bg-white border-t border-slate-200 px-6 items-center justify-center select-none text-slate-400 text-xs z-50 shadow-md">
-        No track selected. Click on any song to start listening.
-      </div>
-    );
-  }
-
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const hasTrack = Boolean(currentTrack);
+  const progressPercent = hasTrack && duration > 0 ? (currentTime / duration) * 100 : 0;
 
   const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!hasTrack) return;
     const time = parseFloat(e.target.value);
     seekTo(time);
   };
@@ -85,23 +81,24 @@ export function MusicPlayer() {
       <MiniPlayer onOpenQueue={() => setQueueModalOpen(true)} />
 
       {/* DESKTOP PLAYER (>= 1024px) - Matches Sefon Design */}
-      <div className="hidden lg:flex fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[1300px] h-16 bg-white border-t border-slate-200 select-none z-50 shadow-[0_-4px_25px_rgba(0,0,0,0.15)] flex-col justify-between px-4 sm:px-6">
+      <div className="hidden lg:flex fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[1100px] h-[66px] bg-white border-t border-slate-200 select-none z-50 shadow-[0_-4px_25px_rgba(0,0,0,0.15)] flex-col justify-between px-4 sm:px-6 py-1.5">
         {/* Top Scrubber with Time Labels on the Left & Right (Matching Sefon Screenshot) */}
-        <div className="w-full relative pt-1 flex items-center gap-3">
+        <div className="w-full relative flex items-center gap-3">
           {/* Current Time on Left */}
-          <span className="text-[11px] text-slate-400 font-medium select-none min-w-[34px]">
-            {formatDuration(currentTime, true)}
+          <span className={cn("text-[11px] font-medium select-none min-w-[32px]", hasTrack ? "text-slate-400" : "text-slate-300")}>
+            {hasTrack ? formatDuration(currentTime, true) : "00:00"}
           </span>
 
           {/* Progress Line */}
-          <div className="flex-1 relative h-1.5 bg-slate-200 rounded-full cursor-pointer group my-auto">
+          <div className={cn("flex-1 relative h-1.5 bg-slate-200 rounded-full my-auto", hasTrack ? "cursor-pointer group" : "opacity-60 pointer-events-none")}>
             <input
               type="range"
               min={0}
               max={duration || 100}
-              value={currentTime}
+              value={hasTrack ? currentTime : 0}
               onChange={handleProgressChange}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              disabled={!hasTrack}
+              className={cn("absolute inset-0 w-full h-full opacity-0 z-10", hasTrack ? "cursor-pointer" : "cursor-not-allowed")}
               aria-label="Seek track position"
             />
             {/* Progress fill (Amber/Yellow) */}
@@ -110,26 +107,34 @@ export function MusicPlayer() {
               style={{ width: `${progressPercent}%` }}
             />
             {/* Progress thumb dot on hover */}
-            <div
-              className="w-3 h-3 rounded-full bg-amber-500 absolute top-1/2 -translate-y-1/2 -ml-1.5 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-xs"
-              style={{ left: `${progressPercent}%` }}
-            />
+            {hasTrack && (
+              <div
+                className="w-3 h-3 rounded-full bg-amber-500 absolute top-1/2 -translate-y-1/2 -ml-1.5 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-xs"
+                style={{ left: `${progressPercent}%` }}
+              />
+            )}
           </div>
 
           {/* Total Duration on Right */}
-          <span className="text-[11px] text-slate-400 font-medium select-none min-w-[34px] text-right">
-            {formatDuration(duration, true)}
+          <span className={cn("text-[11px] font-medium select-none min-w-[32px] text-right", hasTrack ? "text-slate-400" : "text-slate-300")}>
+            {hasTrack ? formatDuration(duration, true) : "00:00"}
           </span>
         </div>
 
         {/* Player Body Bar: Left Controls, Center Track Info, Right Actions */}
-        <div className="flex-1 w-full flex items-center justify-between pb-1">
+        <div className="flex-1 w-full flex items-center justify-between pt-0.5 relative">
           {/* Left Controls: Prev, Play/Pause, Next, Queue/List, Repeat, Shuffle */}
-          <div className="flex items-center gap-2.5 text-slate-600 shrink-0">
+          <div className="flex items-center gap-2.5 shrink-0 z-10">
             {/* Previous */}
             <button
-              onClick={previous}
-              className="p-1.5 rounded hover:bg-slate-100 hover:text-slate-900 transition-colors focus:outline-none"
+              onClick={hasTrack ? previous : undefined}
+              disabled={!hasTrack}
+              className={cn(
+                "p-1.5 rounded transition-colors focus:outline-none",
+                hasTrack
+                  ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+                  : "text-slate-300 pointer-events-none cursor-not-allowed"
+              )}
               aria-label="Previous track"
             >
               <SkipBack className="w-4.5 h-4.5 fill-current" />
@@ -137,8 +142,14 @@ export function MusicPlayer() {
 
             {/* Play / Pause */}
             <button
-              onClick={togglePlay}
-              className="p-1.5 rounded hover:bg-slate-100 hover:text-slate-900 transition-colors focus:outline-none"
+              onClick={hasTrack ? togglePlay : undefined}
+              disabled={!hasTrack}
+              className={cn(
+                "p-1.5 rounded transition-colors focus:outline-none",
+                hasTrack
+                  ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+                  : "text-slate-300 pointer-events-none cursor-not-allowed"
+              )}
               aria-label={isPlaying ? "Pause track" : "Play track"}
             >
               {isPlaying ? (
@@ -150,8 +161,14 @@ export function MusicPlayer() {
 
             {/* Next */}
             <button
-              onClick={next}
-              className="p-1.5 rounded hover:bg-slate-100 hover:text-slate-900 transition-colors focus:outline-none"
+              onClick={hasTrack ? next : undefined}
+              disabled={!hasTrack}
+              className={cn(
+                "p-1.5 rounded transition-colors focus:outline-none",
+                hasTrack
+                  ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+                  : "text-slate-300 pointer-events-none cursor-not-allowed"
+              )}
               aria-label="Next track"
             >
               <SkipForward className="w-4.5 h-4.5 fill-current" />
@@ -159,12 +176,15 @@ export function MusicPlayer() {
 
             {/* Queue / Playlist Overlay Toggle Button (Active when open) */}
             <button
-              onClick={() => setQueueModalOpen(!queueModalOpen)}
+              onClick={hasTrack ? () => setQueueModalOpen(!queueModalOpen) : undefined}
+              disabled={!hasTrack}
               className={cn(
                 "p-1.5 rounded transition-colors focus:outline-none",
-                queueModalOpen
-                  ? "bg-[#365377] text-white shadow-xs"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                !hasTrack
+                  ? "text-slate-300 pointer-events-none cursor-not-allowed"
+                  : queueModalOpen
+                  ? "bg-[#365377] text-white shadow-xs cursor-pointer"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
               )}
               aria-label="Toggle playlist queue overlay"
             >
@@ -173,15 +193,20 @@ export function MusicPlayer() {
 
             {/* Repeat */}
             <button
-              onClick={toggleRepeat}
+              onClick={hasTrack ? toggleRepeat : undefined}
+              disabled={!hasTrack}
               className={cn(
-                "p-1.5 rounded hover:bg-slate-100 transition-colors focus:outline-none relative",
-                repeatMode !== "off" ? "text-amber-500 font-bold" : "text-slate-600 hover:text-slate-900"
+                "p-1.5 rounded transition-colors focus:outline-none relative",
+                !hasTrack
+                  ? "text-slate-300 pointer-events-none cursor-not-allowed"
+                  : repeatMode !== "off"
+                  ? "text-amber-500 font-bold hover:bg-slate-100 cursor-pointer"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
               )}
               aria-label={`Repeat mode: ${repeatMode}`}
             >
               <Repeat className="w-4.5 h-4.5" />
-              {repeatMode === "one" && (
+              {repeatMode === "one" && hasTrack && (
                 <span className="absolute -top-0.5 -right-0.5 bg-amber-500 text-[8px] font-bold text-white leading-none px-1 rounded-full">
                   1
                 </span>
@@ -190,10 +215,15 @@ export function MusicPlayer() {
 
             {/* Shuffle */}
             <button
-              onClick={toggleShuffle}
+              onClick={hasTrack ? toggleShuffle : undefined}
+              disabled={!hasTrack}
               className={cn(
-                "p-1.5 rounded hover:bg-slate-100 transition-colors focus:outline-none",
-                isShuffled ? "text-amber-500 font-bold" : "text-slate-600 hover:text-slate-900"
+                "p-1.5 rounded transition-colors focus:outline-none",
+                !hasTrack
+                  ? "text-slate-300 pointer-events-none cursor-not-allowed"
+                  : isShuffled
+                  ? "text-amber-500 font-bold hover:bg-slate-100 cursor-pointer"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
               )}
               aria-label="Shuffle queue"
             >
@@ -201,61 +231,62 @@ export function MusicPlayer() {
             </button>
           </div>
 
-          {/* Center: Track Details (Bold Artist & Regular Title in single line) */}
-          <div className="flex-1 text-center px-4 min-w-0 flex items-center justify-center gap-1.5">
-            <Link
-              href={`/artists/${currentTrack.artist.id}`}
-              className="text-xs sm:text-sm text-slate-900 font-bold truncate hover:underline hover:text-[#365377] transition-colors"
-            >
-              {currentTrack.artist.name}
-            </Link>
-            <Link
-              href={`/artists/${currentTrack.artist.id}`}
-              className="text-xs sm:text-sm text-slate-500 font-normal truncate hover:underline hover:text-[#365377] transition-colors"
-            >
-              {currentTrack.title}
-            </Link>
+          {/* Center: Track Details (Permanently pinned at exact 50% absolute center) */}
+          <div className="absolute left-1/2 -translate-x-1/2 max-w-[500px] text-center px-4 min-w-0 flex items-center justify-center gap-2 pointer-events-auto z-0">
+            {hasTrack && currentTrack ? (
+              <>
+                <Link
+                  href={`/artists/${currentTrack.artist.id}`}
+                  className="text-xs sm:text-[13.5px] text-slate-900 font-bold truncate hover:underline hover:text-[#365377] transition-colors"
+                >
+                  {currentTrack.artist.name}
+                </Link>
+                <Link
+                  href={`/artists/${currentTrack.artist.id}`}
+                  className="text-xs sm:text-[13.5px] text-slate-500 font-normal truncate hover:underline hover:text-[#365377] transition-colors"
+                >
+                  {currentTrack.title}
+                </Link>
+              </>
+            ) : null}
           </div>
 
           {/* Right Controls: Quality, Volume, Like, Plus, Download */}
-          <div className="flex items-center gap-3 text-slate-500 shrink-0">
-            {/* Audio Quality MQ / HQ */}
-            <button
-              onClick={() => setQuality(quality === "MQ" ? "HQ" : "MQ")}
-              className="text-xs font-semibold text-slate-500 hover:text-slate-900 px-1 py-0.5 transition-colors focus:outline-none uppercase"
-              aria-label={`Toggle audio quality. Current: ${quality}`}
-            >
-              {quality}
-            </button>
+          <div className="flex items-center gap-3 shrink-0 z-10">
+            {/* Audio Quality MQ / HQ Popover (Matches Screenshot) */}
+            <AudioQualityPopover quality={quality} setQuality={setQuality} disabled={!hasTrack} />
 
             {/* Volume Popover with Equalizer Trigger */}
-            <VolumePopover />
+            <VolumePopover disabled={!hasTrack} />
 
             {/* Like */}
             <button
-              onClick={() => setIsLiked(!isLiked)}
+              onClick={hasTrack ? () => setIsLiked(!isLiked) : undefined}
+              disabled={!hasTrack}
               className={cn(
-                "p-1 hover:text-red-500 transition-colors focus:outline-none",
-                isLiked ? "text-red-500 fill-red-500" : "text-slate-500 hover:text-slate-900"
+                "p-1 transition-colors focus:outline-none",
+                !hasTrack
+                  ? "text-slate-300 pointer-events-none cursor-not-allowed"
+                  : isLiked
+                  ? "text-red-500 fill-red-500 cursor-pointer"
+                  : "text-slate-500 hover:text-slate-900 cursor-pointer"
               )}
               aria-label={isLiked ? "Unlike" : "Like"}
             >
-              <Heart className={cn("w-4.5 h-4.5", isLiked ? "fill-current" : "")} />
+              <Heart className={cn("w-4.5 h-4.5", isLiked && hasTrack ? "fill-current" : "")} />
             </button>
 
-            {/* Add to Playlist */}
-            <button
-              onClick={() => alert(`Added "${currentTrack.title}" to playlist`)}
-              className="p-1 text-slate-500 hover:text-slate-900 transition-colors focus:outline-none"
-              aria-label="Add to playlist"
-            >
-              <Plus className="w-4.5 h-4.5" />
-            </button>
+            {/* Add to Playlist Popover (Matches Screenshot) */}
+            <AddToPlaylistPopover track={currentTrack} disabled={!hasTrack} />
 
             {/* Download */}
             <button
-              onClick={() => alert(`Downloading "${currentTrack.title}" (mock state)`)}
-              className="p-1 text-slate-500 hover:text-slate-900 transition-colors focus:outline-none"
+              onClick={hasTrack && currentTrack ? () => alert(`Downloading "${currentTrack.title}" (mock state)`) : undefined}
+              disabled={!hasTrack}
+              className={cn(
+                "p-1 transition-colors focus:outline-none",
+                hasTrack ? "text-slate-500 hover:text-slate-900 cursor-pointer" : "text-slate-300 pointer-events-none cursor-not-allowed"
+              )}
               aria-label="Download"
             >
               <Download className="w-4.5 h-4.5" />
@@ -268,8 +299,8 @@ export function MusicPlayer() {
       <EqualizerModal />
 
       {/* QUEUE / PLAYLIST FULL OVERLAY (Positioned from Top down to Bottom Player Bar) */}
-      {queueModalOpen && (
-        <div className="fixed top-0 bottom-14 left-0 right-0 mx-auto w-full max-w-[1300px] z-50 flex flex-col bg-white shadow-2xl border-x border-slate-200 animate-fade-in select-none">
+      {queueModalOpen && currentTrack && (
+        <div className="fixed top-0 bottom-[66px] left-0 right-0 mx-auto w-full max-w-[1100px] z-50 flex flex-col bg-white shadow-2xl border-x border-slate-200 animate-fade-in select-none">
           {/* Overlay Header: Left Title + Artwork + Right Clean Close Button (Matching Sefon Screenshot) */}
           <div className="h-11 border-b border-slate-100 px-4 sm:px-6 flex items-center justify-between bg-white shrink-0">
             <div className="flex items-center gap-2.5 min-w-0">

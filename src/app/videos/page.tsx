@@ -69,7 +69,7 @@ export default function MusicVideosPage() {
       {/* FIXED CENTERED OVERLAY VIDEO PLAYER (PORTAL TO BODY) */}
       {mounted && activeVideo && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-sm animate-fade-in" onClick={handleCloseVideo}>
-          <div className="relative w-full max-w-[1300px] h-[620px] max-h-[90vh] bg-[#121214] border border-slate-700/80 rounded-xl overflow-hidden flex flex-col md:flex-row shadow-2xl select-none" onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full max-w-[1100px] h-[620px] max-h-[90vh] bg-[#121214] border border-slate-700/80 rounded-xl overflow-hidden flex flex-col md:flex-row shadow-2xl select-none" onClick={(e) => e.stopPropagation()}>
             {/* YouTube Video (Left) */}
             <div className="flex-1 h-[280px] md:h-full bg-black relative">
               <iframe

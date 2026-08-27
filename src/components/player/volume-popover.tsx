@@ -9,9 +9,10 @@ import { cn } from "../../lib/utils";
 
 interface VolumePopoverProps {
   className?: string;
+  disabled?: boolean;
 }
 
-export function VolumePopover({ className }: VolumePopoverProps) {
+export function VolumePopover({ className, disabled = false }: VolumePopoverProps) {
   const { volume, isMuted, setVolume, toggleMute } = usePlayerStore();
   const { toggleEqualizer, isEqualizerOpen } = useEqualizerStore();
   const [isOpen, setIsOpen] = useState(false);
@@ -46,6 +47,9 @@ export function VolumePopover({ className }: VolumePopoverProps) {
   };
 
   const getVolumeIcon = () => {
+    if (disabled) {
+      return <Volume2 className="w-4.5 h-4.5 text-slate-300" />;
+    }
     if (isMuted || volume === 0) {
       return <VolumeX className="w-4.5 h-4.5 text-slate-400" />;
     }
@@ -58,7 +62,7 @@ export function VolumePopover({ className }: VolumePopoverProps) {
   return (
     <div ref={containerRef} className={cn("relative inline-flex items-center", className)}>
       {/* 1. VERTICAL POPUP (Matches Screenshot 1) */}
-      {isOpen && (
+      {!disabled && isOpen && (
         <div
           className="absolute bottom-[calc(100%+12px)] right-1/2 translate-x-1/2 w-11 py-2.5 px-1 bg-[#365377] rounded-md shadow-2xl border border-[#2b4463] flex flex-col items-center gap-2 z-50 animate-fade-in select-none"
           role="dialog"
@@ -103,10 +107,15 @@ export function VolumePopover({ className }: VolumePopoverProps) {
 
       {/* 2. SPEAKER BUTTON IN PLAYER BAR */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={!disabled ? () => setIsOpen(!isOpen) : undefined}
+        disabled={disabled}
         className={cn(
-          "p-1.5 rounded hover:bg-slate-100 transition-colors focus:outline-none",
-          isOpen ? "bg-slate-100 text-slate-900" : "text-slate-600 hover:text-slate-900"
+          "p-1.5 rounded transition-colors focus:outline-none",
+          disabled
+            ? "cursor-not-allowed text-slate-300 opacity-60 pointer-events-none"
+            : isOpen
+            ? "bg-slate-100 text-slate-900"
+            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
         )}
         aria-label={isMuted ? "Unmute and open volume popup" : "Open volume popup"}
         aria-expanded={isOpen}
