@@ -103,19 +103,19 @@ const applyEqualizerSettings = () => {
 };
 
 export const useAudioPlayer = () => {
-  const {
-    currentTrack,
-    isPlaying,
-    volume,
-    isMuted,
-    repeatMode,
-    pause,
-    next,
-    setCurrentTime,
-    setDuration
-  } = usePlayerStore();
+  const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const volume = usePlayerStore((s) => s.volume);
+  const isMuted = usePlayerStore((s) => s.isMuted);
+  const repeatMode = usePlayerStore((s) => s.repeatMode);
+  const pause = usePlayerStore((s) => s.pause);
+  const next = usePlayerStore((s) => s.next);
+  const setCurrentTime = usePlayerStore((s) => s.setCurrentTime);
+  const setDuration = usePlayerStore((s) => s.setDuration);
 
-  const { isEnabled, bands, preamp } = useEqualizerStore();
+  const isEnabled = useEqualizerStore((s) => s.isEnabled);
+  const bands = useEqualizerStore((s) => s.bands);
+  const preamp = useEqualizerStore((s) => s.preamp);
 
   const isPlayingRef = useRef(isPlaying);
   const volumeRef = useRef(volume);

@@ -13,8 +13,14 @@ interface VolumePopoverProps {
 }
 
 export function VolumePopover({ className, disabled = false }: VolumePopoverProps) {
-  const { volume, isMuted, setVolume, toggleMute } = usePlayerStore();
-  const { toggleEqualizer, isEqualizerOpen } = useEqualizerStore();
+  const volume = usePlayerStore((s) => s.volume);
+  const isMuted = usePlayerStore((s) => s.isMuted);
+  const setVolume = usePlayerStore((s) => s.setVolume);
+  const toggleMute = usePlayerStore((s) => s.toggleMute);
+
+  const toggleEqualizer = useEqualizerStore((s) => s.toggleEqualizer);
+  const isEqualizerOpen = useEqualizerStore((s) => s.isEqualizerOpen);
+
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -70,6 +76,7 @@ export function VolumePopover({ className, disabled = false }: VolumePopoverProp
         >
           {/* Top: Equalizer Button Icon */}
           <button
+            type="button"
             onClick={() => {
               toggleEqualizer();
             }}
@@ -107,6 +114,7 @@ export function VolumePopover({ className, disabled = false }: VolumePopoverProp
 
       {/* 2. SPEAKER BUTTON IN PLAYER BAR */}
       <button
+        type="button"
         onClick={!disabled ? () => setIsOpen(!isOpen) : undefined}
         disabled={disabled}
         className={cn(

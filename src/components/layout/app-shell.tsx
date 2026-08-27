@@ -53,6 +53,7 @@ export function AppShell({ children }: AppShellProps) {
             <div className="relative flex flex-col w-[280px] h-full bg-white animate-slide-in shadow-2xl z-50 overflow-y-auto p-4 border-r border-slate-200">
               {/* Close Button */}
               <button
+                type="button"
                 onClick={toggleMobileMenu}
                 className="self-end p-2 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors focus:outline-none mb-2"
                 aria-label="Close Navigation Menu"

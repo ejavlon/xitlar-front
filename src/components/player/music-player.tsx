@@ -32,23 +32,21 @@ import {
 } from "lucide-react";
 
 export function MusicPlayer() {
-  const {
-    currentTrack,
-    isPlaying,
-    queue,
-    currentTime,
-    duration,
-    repeatMode,
-    isShuffled,
-    quality,
-    togglePlay,
-    next,
-    previous,
-    toggleShuffle,
-    toggleRepeat,
-    setQuality,
-    playQueue
-  } = usePlayerStore();
+  const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const queue = usePlayerStore((s) => s.queue);
+  const currentTime = usePlayerStore((s) => s.currentTime);
+  const duration = usePlayerStore((s) => s.duration);
+  const repeatMode = usePlayerStore((s) => s.repeatMode);
+  const isShuffled = usePlayerStore((s) => s.isShuffled);
+  const quality = usePlayerStore((s) => s.quality);
+  const togglePlay = usePlayerStore((s) => s.togglePlay);
+  const next = usePlayerStore((s) => s.next);
+  const previous = usePlayerStore((s) => s.previous);
+  const toggleShuffle = usePlayerStore((s) => s.toggleShuffle);
+  const toggleRepeat = usePlayerStore((s) => s.toggleRepeat);
+  const setQuality = usePlayerStore((s) => s.setQuality);
+  const playQueue = usePlayerStore((s) => s.playQueue);
 
   const { seekTo } = useAudioPlayer();
   usePlayerInit();
@@ -127,6 +125,7 @@ export function MusicPlayer() {
           <div className="flex items-center gap-2.5 shrink-0 z-10">
             {/* Previous */}
             <button
+              type="button"
               onClick={hasTrack ? previous : undefined}
               disabled={!hasTrack}
               className={cn(
@@ -142,6 +141,7 @@ export function MusicPlayer() {
 
             {/* Play / Pause */}
             <button
+              type="button"
               onClick={hasTrack ? togglePlay : undefined}
               disabled={!hasTrack}
               className={cn(
@@ -161,6 +161,7 @@ export function MusicPlayer() {
 
             {/* Next */}
             <button
+              type="button"
               onClick={hasTrack ? next : undefined}
               disabled={!hasTrack}
               className={cn(
@@ -176,6 +177,7 @@ export function MusicPlayer() {
 
             {/* Queue / Playlist Overlay Toggle Button (Active when open) */}
             <button
+              type="button"
               onClick={hasTrack ? () => setQueueModalOpen(!queueModalOpen) : undefined}
               disabled={!hasTrack}
               className={cn(
@@ -193,6 +195,7 @@ export function MusicPlayer() {
 
             {/* Repeat */}
             <button
+              type="button"
               onClick={hasTrack ? toggleRepeat : undefined}
               disabled={!hasTrack}
               className={cn(
@@ -215,6 +218,7 @@ export function MusicPlayer() {
 
             {/* Shuffle */}
             <button
+              type="button"
               onClick={hasTrack ? toggleShuffle : undefined}
               disabled={!hasTrack}
               className={cn(
@@ -261,6 +265,7 @@ export function MusicPlayer() {
 
             {/* Like */}
             <button
+              type="button"
               onClick={hasTrack ? () => setIsLiked(!isLiked) : undefined}
               disabled={!hasTrack}
               className={cn(
@@ -281,6 +286,7 @@ export function MusicPlayer() {
 
             {/* Download */}
             <button
+              type="button"
               onClick={hasTrack && currentTrack ? () => alert(`Downloading "${currentTrack.title}" (mock state)`) : undefined}
               disabled={!hasTrack}
               className={cn(
@@ -316,6 +322,7 @@ export function MusicPlayer() {
               </h2>
             </div>
             <button
+              type="button"
               onClick={() => setQueueModalOpen(false)}
               className="p-1 text-slate-400 hover:text-slate-800 rounded transition-colors focus:outline-none"
               aria-label="Close Playlist View"
@@ -335,7 +342,7 @@ export function MusicPlayer() {
               ) : (
                 queue.map((track, idx) => (
                   <TrackRow
-                    key={`queue-${track.id}-${idx}`}
+                    key={track.id}
                     track={track}
                     index={idx}
                     playlistTracks={queue}

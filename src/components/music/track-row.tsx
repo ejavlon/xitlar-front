@@ -6,7 +6,7 @@ import { usePlayerStore } from "../../stores/player-store";
 import { formatDuration, formatReleaseDate, formatNumber } from "../../lib/formatters";
 import { cn } from "../../lib/utils";
 import { Play, Pause, Heart, Plus, Download, HeartCrack } from "lucide-react";
-import { useState } from "react";
+import { useState, memo } from "react";
 import { AddToPlaylistPopover } from "../player/add-to-playlist-popover";
 
 interface TrackRowProps {
@@ -16,14 +16,16 @@ interface TrackRowProps {
   variant?: "default" | "compact";
 }
 
-export function TrackRow({ track, playlistTracks, variant = "default" }: TrackRowProps) {
-  const { currentTrack, isPlaying, playTrack, togglePlay } = usePlayerStore();
+export const TrackRow = memo(function TrackRow({ track, playlistTracks, variant = "default" }: TrackRowProps) {
+  const isCurrent = usePlayerStore((s) => s.currentTrack?.id === track.id);
+  const isPlaying = usePlayerStore((s) => s.isPlaying && s.currentTrack?.id === track.id);
+  const playTrack = usePlayerStore((s) => s.playTrack);
+  const togglePlay = usePlayerStore((s) => s.togglePlay);
+
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(track.likesCount || 0);
   const [isDisliked, setIsDisliked] = useState(false);
   const [dislikesCount, setDislikesCount] = useState(track.dislikesCount || 203);
-
-  const isCurrent = currentTrack?.id === track.id;
 
   const handlePlayClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -84,6 +86,7 @@ export function TrackRow({ track, playlistTracks, variant = "default" }: TrackRo
       <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
         {/* Circular Play / Pause Icon Button (32x32) */}
         <button
+          type="button"
           onClick={handlePlayClick}
           className={cn(
             "w-8 h-8 rounded-full border bg-white flex items-center justify-center shrink-0 transition-colors focus:outline-none",
@@ -206,5 +209,5 @@ export function TrackRow({ track, playlistTracks, variant = "default" }: TrackRo
       </div>
     </div>
   );
-}
+});
 

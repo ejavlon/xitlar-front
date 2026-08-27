@@ -43,7 +43,10 @@ function HeaderSearchBar() {
   const [suggestedArtists, setSuggestedArtists] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { currentTrack, isPlaying, playTrack, togglePlay } = usePlayerStore();
+  const currentTrackId = usePlayerStore((s) => s.currentTrack?.id);
+  const isAudioPlaying = usePlayerStore((s) => s.isPlaying);
+  const playTrack = usePlayerStore((s) => s.playTrack);
+  const togglePlay = usePlayerStore((s) => s.togglePlay);
 
   useEffect(() => {
     setSearchQuery(searchParams.get("q") || "");
@@ -199,12 +202,12 @@ function HeaderSearchBar() {
                   </div>
                   <div className="space-y-1">
                     {suggestedTracks.map((track) => {
-                      const isThisPlaying = currentTrack?.id === track.id && isPlaying;
+                      const isThisPlaying = currentTrackId === track.id && isAudioPlaying;
                       return (
                         <div
                           key={track.id}
                           onClick={() => {
-                            if (currentTrack?.id === track.id) {
+                            if (currentTrackId === track.id) {
                               togglePlay();
                             } else {
                               playTrack(track, suggestedTracks);
@@ -272,7 +275,9 @@ function HeaderSearchBar() {
 
 export function Header({ onMenuToggle }: HeaderProps) {
   const router = useRouter();
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const logout = useAuthStore((s) => s.logout);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -294,6 +299,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
       {/* Left: Brand Logo & Mobile Toggle */}
       <div className="flex items-center gap-2.5">
         <button
+          type="button"
           onClick={onMenuToggle}
           className="p-1 text-white/80 hover:text-white rounded-md hover:bg-white/10 transition-colors lg:hidden focus:outline-none"
           aria-label="Toggle Navigation Menu"
@@ -333,6 +339,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
         {isAuthenticated && user ? (
           <div className="relative" ref={dropdownRef}>
             <button
+              type="button"
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="w-[115px] h-[30px] bg-white text-slate-800 hover:bg-slate-50 text-[12px] font-semibold rounded-[4px] shadow-xs flex items-center justify-center gap-2 transition-all focus:outline-none select-none border border-slate-200/80 shrink-0 cursor-pointer"
               aria-haspopup="true"
@@ -447,6 +454,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
 
                 <div className="py-1">
                   <button
+                    type="button"
                     onClick={() => {
                       setDropdownOpen(false);
                       logout();

@@ -27,25 +27,23 @@ interface MiniPlayerProps {
 }
 
 export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
-  const {
-    currentTrack,
-    isPlaying,
-    currentTime,
-    duration,
-    volume,
-    isMuted,
-    repeatMode,
-    isShuffled,
-    quality,
-    togglePlay,
-    next,
-    previous,
-    setVolume,
-    toggleMute,
-    toggleShuffle,
-    toggleRepeat,
-    setQuality
-  } = usePlayerStore();
+  const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const currentTime = usePlayerStore((s) => s.currentTime);
+  const duration = usePlayerStore((s) => s.duration);
+  const volume = usePlayerStore((s) => s.volume);
+  const isMuted = usePlayerStore((s) => s.isMuted);
+  const repeatMode = usePlayerStore((s) => s.repeatMode);
+  const isShuffled = usePlayerStore((s) => s.isShuffled);
+  const quality = usePlayerStore((s) => s.quality);
+  const togglePlay = usePlayerStore((s) => s.togglePlay);
+  const next = usePlayerStore((s) => s.next);
+  const previous = usePlayerStore((s) => s.previous);
+  const setVolume = usePlayerStore((s) => s.setVolume);
+  const toggleMute = usePlayerStore((s) => s.toggleMute);
+  const toggleShuffle = usePlayerStore((s) => s.toggleShuffle);
+  const toggleRepeat = usePlayerStore((s) => s.toggleRepeat);
+  const setQuality = usePlayerStore((s) => s.setQuality);
 
   const { seekTo } = useAudioPlayer();
 
@@ -105,6 +103,7 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
           onClick={(e) => e.stopPropagation()}
         >
           <button
+            type="button"
             onClick={() => setIsLiked(!isLiked)}
             className={cn(
               "p-1.5 rounded-full hover:bg-slate-100 transition-colors focus:outline-none",
@@ -116,6 +115,7 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
           </button>
 
           <button
+            type="button"
             onClick={togglePlay}
             className="w-8 h-8 rounded-full bg-[#365377] text-white flex items-center justify-center shadow-xs focus:outline-none"
             aria-label={isPlaying ? "Pause" : "Play"}
@@ -128,6 +128,7 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
           </button>
 
           <button
+            type="button"
             onClick={() => setExpanded(true)}
             className="p-1.5 text-slate-400 hover:text-slate-700 focus:outline-none"
             aria-label="Expand player"
@@ -151,6 +152,7 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
           {/* Header */}
           <div className="flex items-center justify-between pb-4 border-b border-slate-100">
             <button
+              type="button"
               onClick={() => setExpanded(false)}
               className="p-2 text-slate-400 hover:text-slate-800 rounded-full bg-slate-100 focus:outline-none"
               aria-label="Collapse player"
@@ -164,6 +166,7 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
               <p className="text-xs font-semibold text-slate-700">{currentTrack.album?.title || "Xitlar Stream"}</p>
             </div>
             <button
+              type="button"
               onClick={() => setQuality(quality === "MQ" ? "HQ" : "MQ")}
               className="px-2.5 py-1 text-xs font-bold text-[#365377] border border-slate-200 rounded-md focus:outline-none"
             >
@@ -193,6 +196,7 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
               </p>
             </div>
             <button
+              type="button"
               onClick={() => setIsLiked(!isLiked)}
               className={cn(
                 "p-2.5 rounded-full bg-slate-100 border border-slate-200 focus:outline-none",
@@ -223,6 +227,7 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
           {/* Playback Controls */}
           <div className="flex items-center justify-between gap-4 mb-6">
             <button
+              type="button"
               onClick={toggleShuffle}
               className={cn(
                 "p-3 text-slate-400 hover:text-slate-800 focus:outline-none",
@@ -234,6 +239,7 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
             </button>
 
             <button
+              type="button"
               onClick={previous}
               className="p-3 text-slate-600 hover:text-slate-900 focus:outline-none"
               aria-label="Previous track"
@@ -242,6 +248,7 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
             </button>
 
             <button
+              type="button"
               onClick={togglePlay}
               className="w-14 h-14 rounded-full bg-[#365377] text-white flex items-center justify-center shadow-md hover:scale-105 transition-transform focus:outline-none"
               aria-label={isPlaying ? "Pause" : "Play"}
@@ -254,6 +261,7 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
             </button>
 
             <button
+              type="button"
               onClick={next}
               className="p-3 text-slate-600 hover:text-slate-900 focus:outline-none"
               aria-label="Next track"
@@ -262,6 +270,7 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
             </button>
 
             <button
+              type="button"
               onClick={toggleRepeat}
               className={cn(
                 "p-3 text-slate-400 hover:text-slate-800 focus:outline-none relative",
@@ -282,6 +291,7 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
           <div className="flex items-center justify-between gap-3 pt-4 border-t border-slate-100">
             <div className="flex items-center gap-3 flex-1">
               <button
+                type="button"
                 onClick={toggleMute}
                 className="text-slate-400 focus:outline-none"
                 aria-label={isMuted ? "Unmute" : "Mute"}
@@ -305,6 +315,7 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
 
             {/* Equalizer Toggle Button */}
             <button
+              type="button"
               onClick={() => {
                 setExpanded(false);
                 useEqualizerStore.getState().setEqualizerOpen(true);
@@ -317,6 +328,7 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
 
             {onOpenQueue && (
               <button
+                type="button"
                 onClick={() => {
                   setExpanded(false);
                   onOpenQueue();

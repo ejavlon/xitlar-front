@@ -43,6 +43,11 @@
   padding: 0;
 }
 
+html {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
 body {
   background-color: #0c1522;
   color: #1e293b;
@@ -73,14 +78,14 @@ body {
   background: #94a3b8;
 }
 
-/* Utility Animations */
+/* Utility Animations - Clean opacity fade without transform jumps */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.15s ease-out forwards;
 }
 
 /* Hide native scrollbar but allow scrolling */

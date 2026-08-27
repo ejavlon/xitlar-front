@@ -112,6 +112,7 @@ export function AudioQualityPopover({
       )}
 
       <button
+        type="button"
         onClick={!disabled ? () => setIsOpen(!isOpen) : undefined}
         disabled={disabled}
         className={cn(

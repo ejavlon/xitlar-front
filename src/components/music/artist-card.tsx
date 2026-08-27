@@ -1,5 +1,4 @@
-"use client";
-
+import { memo } from "react";
 import Link from "next/link";
 import { Artist } from "../../types/artist";
 
@@ -7,7 +6,7 @@ interface ArtistCardProps {
   artist: Artist;
 }
 
-export function ArtistCard({ artist }: ArtistCardProps) {
+export const ArtistCard = memo(function ArtistCard({ artist }: ArtistCardProps) {
   return (
     <Link
       href={`/artists/${artist.id}`}
@@ -29,5 +28,5 @@ export function ArtistCard({ artist }: ArtistCardProps) {
       </h4>
     </Link>
   );
-}
+});
 

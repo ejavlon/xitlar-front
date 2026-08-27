@@ -11,18 +11,16 @@ import { X, ChevronDown, Check } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 export function EqualizerModal() {
-  const {
-    isEnabled,
-    selectedPreset,
-    preamp,
-    bands,
-    isEqualizerOpen,
-    toggleEnabled,
-    setPreset,
-    setBandGain,
-    setPreamp,
-    setEqualizerOpen
-  } = useEqualizerStore();
+  const isEnabled = useEqualizerStore((s) => s.isEnabled);
+  const selectedPreset = useEqualizerStore((s) => s.selectedPreset);
+  const preamp = useEqualizerStore((s) => s.preamp);
+  const bands = useEqualizerStore((s) => s.bands);
+  const isEqualizerOpen = useEqualizerStore((s) => s.isEqualizerOpen);
+  const toggleEnabled = useEqualizerStore((s) => s.toggleEnabled);
+  const setPreset = useEqualizerStore((s) => s.setPreset);
+  const setBandGain = useEqualizerStore((s) => s.setBandGain);
+  const setPreamp = useEqualizerStore((s) => s.setPreamp);
+  const setEqualizerOpen = useEqualizerStore((s) => s.setEqualizerOpen);
 
   const [presetDropdownOpen, setPresetDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -60,6 +58,7 @@ export function EqualizerModal() {
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/10 bg-[#2f4a6b] rounded-t-xl">
         {/* Left: Enable/Disable Toggle Button */}
         <button
+          type="button"
           onClick={toggleEnabled}
           className={cn(
             "flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white",
@@ -82,6 +81,7 @@ export function EqualizerModal() {
         {/* Middle: Preset Selector Dropdown */}
         <div ref={dropdownRef} className="relative">
           <button
+            type="button"
             onClick={() => setPresetDropdownOpen(!presetDropdownOpen)}
             className="flex items-center gap-1.5 px-3 py-1 rounded text-xs sm:text-sm font-semibold text-white hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white"
             aria-expanded={presetDropdownOpen}
@@ -98,6 +98,7 @@ export function EqualizerModal() {
                 const isSelected = selectedPreset === preset.name;
                 return (
                   <button
+                    type="button"
                     key={preset.id}
                     onClick={() => {
                       setPreset(preset.name);
@@ -123,6 +124,7 @@ export function EqualizerModal() {
 
         {/* Right: Close Button */}
         <button
+          type="button"
           onClick={() => setEqualizerOpen(false)}
           className="p-1 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition-colors focus:outline-none"
           aria-label="Close Equalizer"

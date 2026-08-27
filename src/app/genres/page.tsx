@@ -120,6 +120,7 @@ export default function GenresPage() {
         </h1>
 
         <button
+          type="button"
           onClick={() => {
             if (navigator.share) {
               navigator.share({ title: "Music by Genres - Xitlar", url: window.location.href });

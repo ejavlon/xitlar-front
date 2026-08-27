@@ -26,7 +26,8 @@ export default function MusicVideosPage() {
   const [activeVideo, setActiveVideo] = useState<MusicVideo | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  const { pause: pauseAudioPlayer, isPlaying: isAudioPlaying } = usePlayerStore();
+  const pauseAudioPlayer = usePlayerStore((s) => s.pause);
+  const isAudioPlaying = usePlayerStore((s) => s.isPlaying);
 
   useEffect(() => {
     setMounted(true);
@@ -87,15 +88,15 @@ export default function MusicVideosPage() {
               {/* Header */}
               <div className="h-10 px-3 flex items-center justify-between border-b border-white/10 shrink-0 text-white/80 bg-[#141416]">
                 <div className="flex items-center gap-1 min-w-0">
-                  <button onClick={handlePrevVideo} className="p-1 text-white/70 hover:text-white hover:bg-white/10 rounded transition-colors cursor-pointer" aria-label="Previous video">
+                  <button type="button" onClick={handlePrevVideo} className="p-1 text-white/70 hover:text-white hover:bg-white/10 rounded transition-colors cursor-pointer" aria-label="Previous video">
                     <ChevronLeft className="w-4 h-4" />
                   </button>
-                  <button onClick={handleNextVideo} className="p-1 text-white/70 hover:text-white hover:bg-white/10 rounded transition-colors cursor-pointer" aria-label="Next video">
+                  <button type="button" onClick={handleNextVideo} className="p-1 text-white/70 hover:text-white hover:bg-white/10 rounded transition-colors cursor-pointer" aria-label="Next video">
                     <ChevronRight className="w-4 h-4" />
                   </button>
                   <span className="text-xs font-semibold text-white/80 ml-1 truncate">Videos ({videos.length})</span>
                 </div>
-                <button onClick={handleCloseVideo} className="p-1 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors cursor-pointer" aria-label="Close">
+                <button type="button" onClick={handleCloseVideo} className="p-1 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors cursor-pointer" aria-label="Close">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -128,6 +129,7 @@ export default function MusicVideosPage() {
                         </div>
                       </div>
                       <button
+                        type="button"
                         onClick={(e) => { e.stopPropagation(); }}
                         className="p-1 text-white/40 hover:text-white hover:bg-white/10 rounded transition-colors shrink-0"
                         aria-label="Add to playlist"
@@ -148,6 +150,7 @@ export default function MusicVideosPage() {
       <div className="flex items-center justify-between pb-1">
         <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">New Music Videos</h1>
         <button
+          type="button"
           onClick={() => { if (navigator.share) { navigator.share({ title: "New Music Videos - Xitlar", url: window.location.href }); } else { alert("Link copied!"); } }}
           className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
         >
@@ -167,6 +170,7 @@ export default function MusicVideosPage() {
           { key: "kazakh" as VideoCategory, label: "KAZAKH" },
         ]).map((tab) => (
           <button
+            type="button"
             key={tab.key}
             onClick={() => setSelectedCategory(tab.key)}
             className={cn(
@@ -200,7 +204,7 @@ export default function MusicVideosPage() {
                 <p className="text-xs text-slate-500 truncate mt-0.5 leading-snug">{video.title}</p>
                 <span className="text-[11px] text-slate-400 mt-1 block">{video.releaseDate}</span>
               </div>
-              <button onClick={(e) => { e.stopPropagation(); }} className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors" aria-label="More actions">
+              <button type="button" onClick={(e) => { e.stopPropagation(); }} className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors" aria-label="More actions">
                 <MoreHorizontal className="w-4 h-4" />
               </button>
             </div>

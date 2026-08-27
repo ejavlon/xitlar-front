@@ -42,6 +42,7 @@ export function MobileNavigation({ onMenuToggle }: MobileNavigationProps) {
 
       {/* Slide-out Menu Toggle */}
       <button
+        type="button"
         onClick={onMenuToggle}
         className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full py-1 text-[11px] font-medium text-slate-500 hover:text-slate-900 focus:outline-none"
         aria-label="Open Sidebar Menu"

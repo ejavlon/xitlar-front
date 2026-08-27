@@ -1,5 +1,4 @@
-"use client";
-
+import { memo } from "react";
 import Link from "next/link";
 import { Playlist } from "../../types/playlist";
 
@@ -7,7 +6,7 @@ interface PlaylistCardProps {
   playlist: Playlist;
 }
 
-export function PlaylistCard({ playlist }: PlaylistCardProps) {
+export const PlaylistCard = memo(function PlaylistCard({ playlist }: PlaylistCardProps) {
   return (
     <Link
       href={`/playlists/${playlist.id}`}
@@ -29,5 +28,5 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
       </h4>
     </Link>
   );
-}
+});
 

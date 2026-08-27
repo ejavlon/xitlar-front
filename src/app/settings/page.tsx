@@ -141,6 +141,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <button
+                  type="button"
                   onClick={() => alert("Logout (presentation state)")}
                   className="hover:text-red-500 transition-colors text-left"
                 >
@@ -228,6 +229,7 @@ export default function SettingsPage() {
           <div className="space-y-2 text-xs text-slate-700">
             <div>
               <button
+                type="button"
                 onClick={() => setPasswordModalOpen(true)}
                 className="hover:text-[#365377] hover:underline transition-colors text-left focus:outline-none"
               >
@@ -236,6 +238,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <button
+                type="button"
                 onClick={() => setDeleteModalOpen(true)}
                 className="hover:text-red-600 hover:underline transition-colors text-left focus:outline-none"
               >
@@ -256,6 +259,7 @@ export default function SettingsPage() {
                 <h4 className="text-sm font-bold">Change Password</h4>
               </div>
               <button
+                type="button"
                 onClick={() => setPasswordModalOpen(false)}
                 className="text-slate-400 hover:text-slate-700 p-1"
                 aria-label="Close"

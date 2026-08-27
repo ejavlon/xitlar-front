@@ -86,7 +86,7 @@ export default function GenreDetailPage() {
           <div className="divide-y divide-slate-100">
             {freshTracks.map((track, idx) => (
               <TrackRow
-                key={`fresh-${track.id}-${idx}`}
+                key={track.id}
                 track={track}
                 index={idx}
                 playlistTracks={freshTracks}
@@ -97,6 +97,7 @@ export default function GenreDetailPage() {
 
           <div>
             <button
+              type="button"
               onClick={() => setShowAllFresh(!showAllFresh)}
               className="mt-2 px-5 py-1.5 border border-slate-300 hover:border-slate-400 rounded-full text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors focus:outline-none shadow-2xs"
             >
@@ -114,7 +115,7 @@ export default function GenreDetailPage() {
           <div className="divide-y divide-slate-100">
             {topTracks.map((track, idx) => (
               <TrackRow
-                key={`top-${track.id}-${idx}`}
+                key={track.id}
                 track={track}
                 index={idx}
                 playlistTracks={topTracks}
@@ -125,6 +126,7 @@ export default function GenreDetailPage() {
 
           <div>
             <button
+              type="button"
               onClick={() => setShowAllTop(!showAllTop)}
               className="mt-2 px-5 py-1.5 border border-slate-300 hover:border-slate-400 rounded-full text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors focus:outline-none shadow-2xs"
             >

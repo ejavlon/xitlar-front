@@ -24,7 +24,9 @@ import { cn } from "../../../lib/utils";
 
 export default function CreatePlaylistPage() {
   const router = useRouter();
-  const { playTrack, currentTrack, isPlaying } = usePlayerStore();
+  const playTrack = usePlayerStore((s) => s.playTrack);
+  const currentTrackId = usePlayerStore((s) => s.currentTrack?.id);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
 
   const [title, setTitle] = useState("New Playlist");
   const [selectedTracks, setSelectedTracks] = useState<Track[]>([]);
@@ -90,7 +92,7 @@ export default function CreatePlaylistPage() {
   };
 
   return (
-    <div className="w-full max-w-[850px] space-y-6 py-3 select-none animate-fade-in font-sans">
+    <div className="w-full space-y-6 py-3 select-none animate-fade-in font-sans">
       {/* 1. HERO HEADER SECTION (Matches Screenshot 2) */}
       <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-6 p-4 sm:p-6 bg-slate-50/70 rounded-xl border border-slate-200/80">
         {/* Cancel / Close Button with Delete Confirmation Popover on Top-Right */}
@@ -161,6 +163,7 @@ export default function CreatePlaylistPage() {
           <div className="flex items-center gap-2.5 pt-1">
             {/* Play Button */}
             <button
+              type="button"
               onClick={handlePlayAll}
               disabled={selectedTracks.length === 0}
               className={cn(
@@ -176,6 +179,7 @@ export default function CreatePlaylistPage() {
 
             {/* Save Playlist Button */}
             <button
+              type="button"
               onClick={handleSavePlaylist}
               disabled={isSaving}
               className="h-[30px] px-4 rounded-full bg-[#456690] hover:bg-[#38557a] text-white text-xs font-semibold shadow-2xs transition-all cursor-pointer focus:outline-none flex items-center gap-1.5"
@@ -201,6 +205,7 @@ export default function CreatePlaylistPage() {
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           {searchQuery && (
             <button
+              type="button"
               onClick={() => setSearchQuery("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
             >
@@ -238,6 +243,7 @@ export default function CreatePlaylistPage() {
                         {formatDuration(track.duration, true)}
                       </span>
                       <button
+                        type="button"
                         onClick={() =>
                           isAdded ? handleRemoveTrack(track.id) : handleAddTrack(track)
                         }
@@ -276,6 +282,7 @@ export default function CreatePlaylistPage() {
             </h3>
             {selectedTracks.length > 0 && (
               <button
+                type="button"
                 onClick={() => setSelectedTracks([])}
                 className="text-[11px] text-red-500 hover:underline cursor-pointer"
               >
@@ -294,8 +301,8 @@ export default function CreatePlaylistPage() {
             </div>
           ) : (
             <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100 shadow-2xs overflow-hidden">
-              {selectedTracks.map((track, idx) => {
-                const isCurrent = currentTrack?.id === track.id;
+              {selectedTracks.map((track) => {
+                const isCurrent = currentTrackId === track.id;
                 return (
                   <div
                     key={track.id}
@@ -304,6 +311,7 @@ export default function CreatePlaylistPage() {
                     {/* Left: Play button + Title */}
                     <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
                       <button
+                        type="button"
                         onClick={() => playTrack(track, selectedTracks)}
                         className={cn(
                           "w-7 h-7 rounded-full border flex items-center justify-center shrink-0 transition-colors",
@@ -336,6 +344,7 @@ export default function CreatePlaylistPage() {
                         {formatDuration(track.duration, true)}
                       </span>
                       <button
+                        type="button"
                         onClick={() => handleRemoveTrack(track.id)}
                         className="p-1 text-slate-400 hover:text-red-500 rounded transition-colors focus:outline-none"
                         title="Remove from playlist"

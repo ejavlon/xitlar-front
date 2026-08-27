@@ -81,7 +81,7 @@ export default function PlaylistDetailPage() {
   const [commentText, setCommentText] = useState("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  const { playQueue } = usePlayerStore();
+  const playQueue = usePlayerStore((s) => s.playQueue);
 
   useEffect(() => {
     const fetchPlaylistData = async () => {
@@ -200,6 +200,7 @@ export default function PlaylistDetailPage() {
     <div className="space-y-7 select-none animate-fade-in font-sans">
       {/* Back button */}
       <button
+        type="button"
         onClick={() => router.back()}
         className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-slate-700 transition-colors focus:outline-none"
       >
@@ -318,6 +319,7 @@ export default function PlaylistDetailPage() {
           <div className="flex items-center justify-center sm:justify-start gap-2.5 pt-3">
             {/* Play All Yellow Button */}
             <button
+              type="button"
               onClick={handlePlayAll}
               disabled={rawTracks.length === 0}
               className={cn(
@@ -333,6 +335,7 @@ export default function PlaylistDetailPage() {
 
             {/* Add to Favorites */}
             <button
+              type="button"
               onClick={() => alert(`Added "${playlist.title}" to favorites`)}
               className="w-8 h-8 rounded-full border border-slate-300 hover:border-slate-400 text-slate-600 flex items-center justify-center transition-colors focus:outline-none"
               aria-label="Add to favorites"
@@ -342,6 +345,7 @@ export default function PlaylistDetailPage() {
 
             {/* Reload / Updates */}
             <button
+              type="button"
               onClick={() => alert("Playlist refreshed!")}
               className="w-8 h-8 rounded-full border border-slate-300 hover:border-slate-400 text-slate-600 flex items-center justify-center transition-colors focus:outline-none"
               aria-label="Refresh collection"
@@ -351,6 +355,7 @@ export default function PlaylistDetailPage() {
 
             {/* Share button */}
             <button
+              type="button"
               onClick={handleShare}
               className="w-8 h-8 rounded-full border border-slate-300 hover:border-slate-400 text-slate-600 flex items-center justify-center transition-colors focus:outline-none"
               aria-label="Share"
@@ -382,6 +387,7 @@ export default function PlaylistDetailPage() {
                 { key: "alphabetical", label: "ALPHABETICAL" }
               ] as const).map((tab) => (
                 <button
+                  type="button"
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
                   className={cn(
@@ -403,7 +409,7 @@ export default function PlaylistDetailPage() {
             <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden bg-white shadow-2xs">
               {sortedTracks.map((track, idx) => (
                 <TrackRow
-                  key={`${track.id}-${idx}`}
+                  key={track.id}
                   track={track}
                   index={idx}
                   playlistTracks={sortedTracks}
@@ -434,6 +440,7 @@ export default function PlaylistDetailPage() {
             <div className="flex items-center justify-start gap-1.5 pt-3 select-none">
               {/* Previous page button */}
               <button
+                type="button"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 className="w-8 h-8 rounded border border-slate-200 hover:border-slate-300 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors focus:outline-none disabled:opacity-40"
                 disabled={currentPage === 1}
@@ -446,6 +453,7 @@ export default function PlaylistDetailPage() {
               {start > 1 && (
                 <>
                   <button
+                    type="button"
                     onClick={() => setCurrentPage(1)}
                     className={cn(
                       "w-8 h-8 rounded text-xs font-semibold transition-colors focus:outline-none border border-slate-200 hover:border-slate-300 text-slate-700 hover:bg-slate-50",
@@ -461,6 +469,7 @@ export default function PlaylistDetailPage() {
               {/* Sliding window page buttons */}
               {pages.map((pageNum) => (
                 <button
+                  type="button"
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
                   className={cn(
@@ -479,6 +488,7 @@ export default function PlaylistDetailPage() {
                 <>
                   {end < totalPages - 1 && <span className="px-1 text-slate-400 text-xs">...</span>}
                   <button
+                    type="button"
                     onClick={() => setCurrentPage(totalPages)}
                     className={cn(
                       "w-8 h-8 rounded text-xs font-semibold border border-slate-200 hover:border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors focus:outline-none",
@@ -492,6 +502,7 @@ export default function PlaylistDetailPage() {
 
               {/* Next page button */}
               <button
+                type="button"
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 className="w-8 h-8 rounded border border-slate-200 hover:border-slate-300 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors focus:outline-none disabled:opacity-40"
                 disabled={currentPage === totalPages}

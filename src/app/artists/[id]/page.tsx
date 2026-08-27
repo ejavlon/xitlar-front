@@ -80,26 +80,23 @@ export default function ArtistDetailPage() {
   const [commentAuthor, setCommentAuthor] = useState("Javlon");
   const [commentText, setCommentText] = useState("");
 
-  const { playQueue } = usePlayerStore();
+  const playQueue = usePlayerStore((s) => s.playQueue);
 
   useEffect(() => {
     const fetchArtistData = async () => {
       if (!id) return;
       try {
         setLoading(true);
-        const [artistData, similarData] = await Promise.all([
+        const [artistData, similarData, tracksData] = await Promise.all([
           artistService.getArtistById(id),
-          artistService.getSimilarArtists(id)
+          artistService.getSimilarArtists(id),
+          artistService.getTracksByArtist(id)
         ]);
 
         setArtist(artistData);
         setSimilarArtists(similarData);
-
-        if (artistData) {
-          const tracksData = await artistService.getTracksByArtist(id, activeTab);
-          setTracks(tracksData);
-          setCurrentPage(1);
-        }
+        setTracks(tracksData);
+        setCurrentPage(1);
       } catch (err) {
         console.error("Error fetching artist detail:", err);
       } finally {
@@ -108,11 +105,27 @@ export default function ArtistDetailPage() {
     };
 
     fetchArtistData();
-  }, [id, activeTab]);
+  }, [id]);
+
+  // Sort tracks instantly without reloading or re-fetching
+  const sortedTracks = useMemo(() => {
+    const list = [...tracks];
+    switch (activeTab) {
+      case "alphabetical":
+        return list.sort((a, b) => a.title.localeCompare(b.title));
+      case "date":
+        return list.sort(
+          (a, b) => new Date(b.releaseDate || 0).getTime() - new Date(a.releaseDate || 0).getTime()
+        );
+      case "popular":
+      default:
+        return list.sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0));
+    }
+  }, [tracks, activeTab]);
 
   const handlePlayAll = () => {
-    if (tracks.length > 0) {
-      playQueue(tracks, 0);
+    if (sortedTracks.length > 0) {
+      playQueue(sortedTracks, 0);
     }
   };
 
@@ -139,11 +152,11 @@ export default function ArtistDetailPage() {
   };
 
   // Pagination calculations
-  const totalPages = Math.max(1, Math.ceil(tracks.length / ITEMS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(sortedTracks.length / ITEMS_PER_PAGE));
   const paginatedTracks = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return tracks.slice(start, start + ITEMS_PER_PAGE);
-  }, [tracks, currentPage]);
+    return sortedTracks.slice(start, start + ITEMS_PER_PAGE);
+  }, [sortedTracks, currentPage]);
 
   if (loading) {
     return (
@@ -178,6 +191,7 @@ export default function ArtistDetailPage() {
     <div className="space-y-8 select-none pb-12">
       {/* Back button */}
       <button
+        type="button"
         onClick={() => router.back()}
         className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-slate-700 transition-colors focus:outline-none"
       >
@@ -232,6 +246,7 @@ export default function ArtistDetailPage() {
           <div className="flex items-center justify-center sm:justify-start gap-2.5 pt-3">
             {/* Play All Yellow Button */}
             <button
+              type="button"
               onClick={handlePlayAll}
               className="flex items-center gap-2 px-5 py-1.5 bg-amber-400 hover:bg-amber-500 text-slate-900 text-xs font-bold rounded-full transition-colors shadow-xs focus:outline-none"
             >
@@ -241,6 +256,7 @@ export default function ArtistDetailPage() {
 
             {/* Add to Favorites */}
             <button
+              type="button"
               onClick={() => alert(`Added ${artist.name} to favorites`)}
               className="w-8 h-8 rounded-full border border-slate-300 hover:border-slate-400 text-slate-600 flex items-center justify-center transition-colors focus:outline-none"
               aria-label="Add to favorites"
@@ -250,6 +266,7 @@ export default function ArtistDetailPage() {
 
             {/* Follow / Verified checkmark button */}
             <button
+              type="button"
               onClick={() => setIsFollowing(!isFollowing)}
               className={cn(
                 "w-8 h-8 rounded-full border flex items-center justify-center transition-colors focus:outline-none",
@@ -264,6 +281,7 @@ export default function ArtistDetailPage() {
 
             {/* Share button */}
             <button
+              type="button"
               onClick={handleShare}
               className="w-8 h-8 rounded-full border border-slate-300 hover:border-slate-400 text-slate-600 flex items-center justify-center transition-colors focus:outline-none"
               aria-label="Share"
@@ -284,8 +302,12 @@ export default function ArtistDetailPage() {
             { key: "date", label: "BY DATE" }
           ] as const).map((tab) => (
             <button
+              type="button"
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => {
+                setActiveTab(tab.key);
+                setCurrentPage(1);
+              }}
               className={cn(
                 "relative pb-2.5 transition-colors focus:outline-none",
                 activeTab === tab.key
@@ -309,6 +331,7 @@ export default function ArtistDetailPage() {
           <div className="flex items-center gap-1.5 pt-4 select-none">
             {/* Previous Page Button */}
             <button
+              type="button"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className={cn(
@@ -325,6 +348,7 @@ export default function ArtistDetailPage() {
             {/* Page Numbers */}
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
               <button
+                type="button"
                 key={pageNum}
                 onClick={() => setCurrentPage(pageNum)}
                 className={cn(
@@ -340,6 +364,7 @@ export default function ArtistDetailPage() {
 
             {/* Next Page Button */}
             <button
+              type="button"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className={cn(
@@ -361,6 +386,7 @@ export default function ArtistDetailPage() {
         {/* Tabs: SIMILAR | POPULAR [GENRE] */}
         <div className="flex items-center gap-6 border-b border-slate-200 text-xs font-bold uppercase tracking-wider select-none">
           <button
+            type="button"
             onClick={() => setRelatedTab("similar")}
             className={cn(
               "relative pb-2.5 transition-colors focus:outline-none",
@@ -376,6 +402,7 @@ export default function ArtistDetailPage() {
           </button>
 
           <button
+            type="button"
             onClick={() => setRelatedTab("genre")}
             className={cn(
               "relative pb-2.5 transition-colors focus:outline-none",
