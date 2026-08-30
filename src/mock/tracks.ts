@@ -92,7 +92,13 @@ export const mockTracks: Track[] = [
     dislikesCount: 420,
     bitrate: 320,
     sampleRate: 44100,
-    format: "mp3"
+    format: "mp3",
+    lyrics: {
+      id: 1,
+      text: "Hamma shunda, hamma shunda yig'ilgan\nBizning treklar, doim dilda aytilgan\nYoshlik o'tib borar shiddat bilan tez\nLekin har bir lahza bizga oltin kez\n\nHamma shunda, hamma shunda yig'ilgan\nOna tilim, go'zal kuylar yangragan\n\n[Chorus]\nDo'stlarim yonda, hamma shunda\nQiyinchiliklar ortda qolar kunda\nBiz oldinga yuramiz to'xtamay\nYo'limizdan aslo qaytmay!",
+      language: "uz",
+      isSynced: false
+    }
   },
   {
     id: "ko-inson",

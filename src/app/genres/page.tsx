@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Share2, ChevronDown } from "lucide-react";
+import { useAuthStore } from "../../stores/auth-store";
 
 const allGenresList = [
   { name: "pop", slug: "pop" },
@@ -78,42 +79,87 @@ interface CommentItem {
 }
 
 export default function GenresPage() {
-  const [comments, setComments] = useState<CommentItem[]>([
-    {
-      id: "c1",
-      author: "Alexey",
-      date: "12 Aug 2026",
-      text: "Great genre catalog! Very easy to discover new tracks.",
-    },
-    {
-      id: "c2",
-      author: "Elena_Music",
-      date: "20 Aug 2026",
-      text: "Synthwave and Lo-Fi sections are pure fire 🔥",
-    },
-  ]);
+  const [comments, setComments] = useState<CommentItem[]>([]);
 
-  const [authorName, setAuthorName] = useState("Javlon");
+  const [authorName, setAuthorName] = useState("Anonymous");
   const [commentText, setCommentText] = useState("");
+
+  const user = useAuthStore((s) => s.user);
+
+  useEffect(() => {
+    if (user) {
+      setAuthorName(user.name || `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username);
+    } else {
+      setAuthorName("Anonymous");
+    }
+  }, [user]);
+
+  // Load comments from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("xitlar_genre_comments");
+      if (stored) {
+        try {
+          setComments(JSON.parse(stored));
+        } catch (e) {
+          console.error("Failed to parse comments", e);
+        }
+      } else {
+        setComments([]);
+      }
+    }
+  }, []);
 
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim()) return;
 
+    const date = new Date();
+    const dayMonth = date.toLocaleDateString('en-US', { day: 'numeric', month: 'long' });
+    const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const formattedDate = `${dayMonth} at ${time}`;
+
     const newComment: CommentItem = {
       id: `comment-${Date.now()}`,
       author: authorName.trim() || "Anonymous",
-      date: "Today",
+      date: formattedDate,
       text: commentText.trim(),
     };
 
-    setComments([newComment, ...comments]);
+    const updatedComments = [newComment, ...comments];
+    setComments(updatedComments);
     setCommentText("");
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("xitlar_genre_comments", JSON.stringify(updatedComments));
+
+      // Store in user comments history if authenticated
+      if (user) {
+        const username = user.username;
+        const storedUserComments = localStorage.getItem("xitlar_user_comments_" + username);
+        let userCommentsList = [];
+        if (storedUserComments) {
+          try {
+            userCommentsList = JSON.parse(storedUserComments);
+          } catch (err) {
+            console.error("Failed to parse user comments", err);
+          }
+        }
+        const newUserComment = {
+          id: "uc-" + Date.now(),
+          targetName: "Genres page comments",
+          text: commentText.trim(),
+          date: formattedDate
+        };
+        userCommentsList = [newUserComment, ...userCommentsList];
+        localStorage.setItem("xitlar_user_comments_" + username, JSON.stringify(userCommentsList));
+      }
+    }
   };
 
   return (
     <div className="space-y-7 select-none animate-fade-in font-sans">
-      {/* 1. HEADER SECTION (Matching Sefon Screenshot) */}
+      
       <div className="flex items-center justify-between pb-2">
         <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
           Music by Genres
@@ -135,8 +181,7 @@ export default function GenresPage() {
           <ChevronDown className="w-3 h-3 text-slate-400" />
         </button>
       </div>
-
-      {/* 2. GENRES GRID (6 Columns of Pill Buttons - Matching Sefon Screenshot) */}
+    
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-3">
         {allGenresList.map((genre) => (
           <Link
@@ -148,8 +193,7 @@ export default function GenresPage() {
           </Link>
         ))}
       </div>
-
-      {/* 3. COMMENTS SECTION (Matching Sefon Screenshot) */}
+      
       <section className="space-y-4 pt-8 border-t border-slate-100">
         <h3 className="text-base font-bold text-slate-900 tracking-tight">
           Comments

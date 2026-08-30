@@ -45,6 +45,18 @@ export class MusicService {
   async getPlaylistsByGenre(genreSlug: string): Promise<Playlist[]> {
     return this.repository.getPlaylistsByGenre(genreSlug);
   }
+
+  async likeTrack(id: string): Promise<Track> {
+    return this.repository.likeTrack(id);
+  }
+
+  async dislikeTrack(id: string): Promise<Track> {
+    return this.repository.dislikeTrack(id);
+  }
+
+  async getLikedTracks(): Promise<Track[]> {
+    return this.repository.getLikedTracks();
+  }
 }
 
 export const musicService = new MusicService();

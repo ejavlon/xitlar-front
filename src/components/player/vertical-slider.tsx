@@ -139,8 +139,7 @@ export function VerticalSlider({
             style={{ height: `${percentage}%` }}
           />
         </div>
-
-        {/* Yellow Slider Thumb (Matches Sefon screenshots) */}
+        
         <div
           className="absolute left-1/2 -translate-x-1/2 w-4 sm:w-4.5 h-1.5 sm:h-2 bg-[#fbbf24] hover:bg-[#f59e0b] active:bg-[#d97706] rounded-[2px] shadow-sm pointer-events-none transition-transform duration-75 group-hover:scale-110"
           style={{

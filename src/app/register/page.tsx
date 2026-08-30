@@ -10,49 +10,124 @@ export default function RegisterPage() {
   const router = useRouter();
   const { login } = useAuthStore();
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [name, setName] = useState("");
+  
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password && confirmPassword && password !== confirmPassword) {
-      alert("Passwords do not match!");
+    setErrorMsg("");
+
+    if (password !== confirmPassword) {
+      setErrorMsg("Passwords do not match!");
       return;
     }
-    // Perform mock registration and log in
-    login({
-      id: `user-${Date.now()}`,
-      name: name.trim() || email.split("@")[0] || "User",
-      email: email.trim(),
-      avatarUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&q=80"
-    });
-    router.push("/");
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/v1/sign-up`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          username,
+          password,
+          confirmPassword,
+        }),
+      });
+
+      const resData = await response.json();
+      if (response.ok && resData && resData.success) {
+        // Automatically login
+        const loginRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/v1/sign-in`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username,
+            password,
+          }),
+        });
+        const loginData = await loginRes.json();
+        if (loginRes.ok && loginData && loginData.success && loginData.data) {
+          await login(loginData.data);
+          router.push("/");
+          return;
+        } else {
+          router.push("/login");
+        }
+      } else {
+        throw new Error(resData?.message || "Sign up failed");
+      }
+    } catch (err: any) {
+      console.error("Real registration failed:", err);
+      setErrorMsg(err.message || "Registration failed. Please try again.");
+    }
   };
 
   const handleOAuthLogin = (provider: "google" | "telegram") => {
-    login();
-    router.push("/");
+    if (provider === "google") {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+      window.location.href = `${baseUrl}/oauth2/authorization/google`;
+    } else {
+      alert("Telegram OAuth is not supported by the backend.");
+    }
   };
 
   return (
-    <div className="w-full max-w-[540px] py-4 select-none animate-fade-in">
+    <div className="w-full max-w-[540px] py-4 select-none animate-fade-in font-sans">
       {/* Title */}
       <h1 className="text-base sm:text-lg font-bold text-slate-900 mb-6 tracking-tight">
         Registration
       </h1>
 
+      {errorMsg && (
+        <div className="mb-4 text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded border border-red-100 max-w-xs">
+          {errorMsg}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-3.5">
-        {/* Email Input */}
+        {/* Username Input */}
         <div>
           <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+            className="w-full sm:w-[320px] h-[36px] bg-[#ebf2fa] border border-[#d6e3f2] rounded-md px-3 text-xs sm:text-[13px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#456690] outline-none transition-all"
+          />
+        </div>
+
+        {/* First Name Input */}
+        <div>
+          <input
+            type="text"
+            placeholder="First Name"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            required
+            className="w-full sm:w-[320px] h-[36px] bg-[#ebf2fa] border border-[#d6e3f2] rounded-md px-3 text-xs sm:text-[13px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#456690] outline-none transition-all"
+          />
+        </div>
+
+        {/* Last Name Input */}
+        <div>
+          <input
+            type="text"
+            placeholder="Last Name"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
             required
             className="w-full sm:w-[320px] h-[36px] bg-[#ebf2fa] border border-[#d6e3f2] rounded-md px-3 text-xs sm:text-[13px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#456690] outline-none transition-all"
           />
@@ -104,18 +179,6 @@ export default function RegisterPage() {
               <Eye className="w-4 h-4" />
             )}
           </button>
-        </div>
-
-        {/* Name Input */}
-        <div>
-          <input
-            type="text"
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="w-full sm:w-[320px] h-[36px] bg-[#ebf2fa] border border-[#d6e3f2] rounded-md px-3 text-xs sm:text-[13px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#456690] outline-none transition-all"
-          />
         </div>
 
         {/* Register Button */}

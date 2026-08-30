@@ -34,6 +34,7 @@ interface PlayerState {
   addToQueue: (track: Track) => void;
   removeFromQueue: (trackId: string) => void;
   clearQueue: () => void;
+  updateTrack: (track: Partial<Track> & { id: string }) => void;
 }
 
 // Helper to shuffle an array
@@ -127,7 +128,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       const remainingTracks = queue.filter((t) => t.id !== currentTrack?.id);
       const shuffled = shuffleArray(remainingTracks);
       const newQueue = currentTrack ? [currentTrack, ...shuffled] : shuffled;
-      
+
       set({
         isShuffled: true,
         originalQueue: [...queue], // store original order
@@ -156,10 +157,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   playTrack: (track, newQueue) => {
     const { queue, isShuffled } = get();
-    
+
     // If a new queue is provided, use it
     const activeQueue = newQueue ? [...newQueue] : [...queue];
-    
+
     // Ensure the track is in the queue
     let index = activeQueue.findIndex((t) => t.id === track.id);
     if (index === -1) {
@@ -184,7 +185,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   playQueue: (tracks, startIndex = 0, autoplay = true) => {
     if (tracks.length === 0) return;
-    
+
     let activeTracks = [...tracks];
     let index = startIndex;
 
@@ -220,7 +221,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const { queue, originalQueue, currentIndex, currentTrack } = get();
     const newQueue = queue.filter((t) => t.id !== trackId);
     const newOrigQueue = originalQueue.filter((t) => t.id !== trackId);
-    
+
     let newIndex = newQueue.findIndex((t) => t.id === currentTrack?.id);
     if (newIndex === -1 && newQueue.length > 0) {
       newIndex = Math.min(currentIndex, newQueue.length - 1);
@@ -244,5 +245,21 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       isPlaying: false,
       currentTime: 0,
       duration: 0
-    })
+    }),
+
+  updateTrack: (updatedFields) => {
+    set((state) => {
+      const update = (t: Track) => (t.id === updatedFields.id ? { ...t, ...updatedFields } : t);
+      const newQueue = state.queue.map(update);
+      const newOriginalQueue = state.originalQueue.map(update);
+      const newCurrentTrack = state.currentTrack && state.currentTrack.id === updatedFields.id
+        ? { ...state.currentTrack, ...updatedFields }
+        : state.currentTrack;
+      return {
+        queue: newQueue,
+        originalQueue: newOriginalQueue,
+        currentTrack: newCurrentTrack
+      };
+    });
+  }
 }));

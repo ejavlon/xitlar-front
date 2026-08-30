@@ -105,3 +105,12 @@ body {
   overflow: hidden;
 }
 
+@keyframes infiniteProgress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.animate-infinite-progress {
+  animation: infiniteProgress 1.6s infinite linear;
+}
+

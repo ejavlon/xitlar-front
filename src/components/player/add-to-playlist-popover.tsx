@@ -3,9 +3,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Track } from "../../types/track";
 import { Playlist } from "../../types/playlist";
-import { mockPlaylists } from "../../mock/playlists";
 import { Plus, X, Check } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { useAuthStore } from "../../stores/auth-store";
+import { api } from "../../lib/api/client";
+import { musicService } from "../../services/music.service";
 
 interface AddToPlaylistPopoverProps {
   track: Track | null;
@@ -23,6 +25,7 @@ export function AddToPlaylistPopover({
   triggerSize = "md"
 }: AddToPlaylistPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const user = useAuthStore((s) => s.user);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [selectedPlaylists, setSelectedPlaylists] = useState<Record<string, boolean>>({});
   const [isCreating, setIsCreating] = useState(false);
@@ -30,12 +33,21 @@ export function AddToPlaylistPopover({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Initialize playlists from mock and track status
+  const isAuthorized = user && (user.role === "ADMIN" || user.role === "MODERATOR");
+
+  // Fetch playlists dynamically when open
   useEffect(() => {
-    // Filter user playlists (non-collections)
-    const userPlaylists = mockPlaylists.filter((p) => !p.isCollection);
-    setPlaylists(userPlaylists);
-  }, []);
+    if (!isOpen || !isAuthorized) return;
+    const fetchPlaylists = async () => {
+      try {
+        const data = await musicService.getPlaylists();
+        setPlaylists(data.filter((p) => !p.isCollection));
+      } catch (err) {
+        console.error("Failed to load user playlists:", err);
+      }
+    };
+    fetchPlaylists();
+  }, [isOpen, isAuthorized]);
 
   // Update checkbox state whenever track changes or popover opens
   useEffect(() => {
@@ -79,59 +91,68 @@ export function AddToPlaylistPopover({
     }
   }, [isCreating]);
 
-  const handleTogglePlaylist = (playlistId: string) => {
+  const handleTogglePlaylist = async (playlistId: string) => {
     if (!track) return;
 
-    setSelectedPlaylists((prev) => {
-      const isCurrentlyChecked = prev[playlistId];
-      const nextChecked = !isCurrentlyChecked;
+    const isCurrentlyChecked = Boolean(selectedPlaylists[playlistId]);
+    const nextChecked = !isCurrentlyChecked;
 
-      // Update mock playlist tracks in memory
-      const targetPl = playlists.find((p) => p.id === playlistId);
-      if (targetPl) {
-        if (nextChecked) {
-          if (!targetPl.tracks) targetPl.tracks = [];
-          if (!targetPl.tracks.some((t) => t.id === track.id)) {
-            targetPl.tracks.push(track);
-            targetPl.trackCount = targetPl.tracks.length;
-          }
-        } else {
-          if (targetPl.tracks) {
-            targetPl.tracks = targetPl.tracks.filter((t) => t.id !== track.id);
-            targetPl.trackCount = targetPl.tracks.length;
-          }
-        }
+    try {
+      if (nextChecked) {
+        await api.post(`/api/v1/playlists/${playlistId}/musics/${track.id}`);
+      } else {
+        await api.delete(`/api/v1/playlists/${playlistId}/musics/${track.id}`);
       }
 
-      return {
+      setSelectedPlaylists((prev) => ({
         ...prev,
         [playlistId]: nextChecked
-      };
-    });
+      }));
+    } catch (err: any) {
+      console.error("Failed to toggle track in playlist:", err);
+      alert(err.message || "Failed to update playlist.");
+    }
   };
 
-  const handleCreatePlaylist = (e: React.FormEvent) => {
+  const handleCreatePlaylist = async (e: React.FormEvent) => {
     e.preventDefault();
     const title = newTitle.trim();
     if (!title || !track) return;
 
-    const newId = `pl-${Date.now()}`;
-    const newPl: Playlist = {
-      id: newId,
-      title,
-      coverUrl: track.coverUrl || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&h=600&fit=crop&q=80",
-      trackCount: 1,
-      isCollection: false,
-      creator: "Javlon",
-      tracks: [track]
-    };
+    try {
+      const formData = new FormData();
+      formData.append("data", new Blob([JSON.stringify({ title, description: "Custom user playlist" })], { type: "application/json" }));
+      
+      const newPlResponse = await api.post<any>("/api/v1/playlists", formData);
+      if (newPlResponse && newPlResponse.id) {
+        const playlistId = newPlResponse.id;
+        
+        await api.post(`/api/v1/playlists/${playlistId}/musics/${track.id}`);
+        
+        const newPl: Playlist = {
+          id: String(newPlResponse.id),
+          title: newPlResponse.title || title,
+          coverUrl: track.coverUrl || undefined,
+          trackCount: 1,
+          isCollection: false,
+          creator: newPlResponse.createdBy ? `${newPlResponse.createdBy.firstName || ""} ${newPlResponse.createdBy.lastName || ""}`.trim() || newPlResponse.createdBy.username : undefined,
+          tracks: [track]
+        };
 
-    mockPlaylists.unshift(newPl);
-    setPlaylists((prev) => [newPl, ...prev]);
-    setSelectedPlaylists((prev) => ({ ...prev, [newId]: true }));
-    setNewTitle("");
-    setIsCreating(false);
+        setPlaylists((prev) => [newPl, ...prev]);
+        setSelectedPlaylists((prev) => ({ ...prev, [String(playlistId)]: true }));
+        setNewTitle("");
+        setIsCreating(false);
+      }
+    } catch (err: any) {
+      console.error("Failed to create playlist:", err);
+      alert(err.message || "Failed to create playlist.");
+    }
   };
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   return (
     <div ref={containerRef} className={cn("relative inline-flex items-center", className)}>

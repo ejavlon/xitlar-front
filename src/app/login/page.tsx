@@ -11,21 +11,49 @@ export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuthStore();
 
-  const [email, setEmail] = useState("javlon2677572@gmail.com");
-  const [password, setPassword] = useState("password123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login();
-    router.push("/");
+    setErrorMsg("");
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/v1/sign-in`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: email,
+          password: password,
+        }),
+      });
+
+      const resData = await response.json();
+      if (response.ok && resData && resData.success && resData.data) {
+        await login(resData.data);
+        router.push("/");
+      } else {
+        throw new Error(resData?.message || "Sign in failed");
+      }
+    } catch (err: any) {
+      console.error("Authentication failed:", err);
+      setErrorMsg(err.message || "Authentication failed. Please check your credentials.");
+    }
   };
 
   const handleOAuthLogin = (provider: "google" | "telegram") => {
-    login();
-    router.push("/");
+    if (provider === "google") {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+      window.location.href = `${baseUrl}/oauth2/authorization/google`;
+    } else {
+      alert("Telegram OAuth is not supported by the backend.");
+    }
   };
 
   return (
@@ -34,6 +62,12 @@ export default function LoginPage() {
       <h1 className="text-base sm:text-lg font-bold text-slate-900 mb-6 tracking-tight">
         {isRegisterMode ? "Create an account" : "Sign in to account"}
       </h1>
+
+      {errorMsg && (
+        <div className="mb-4 text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded border border-red-100 max-w-[320px]">
+          {errorMsg}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-3.5">
         {/* Email / Username Input */}

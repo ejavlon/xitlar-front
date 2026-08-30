@@ -7,6 +7,7 @@ import { Artist } from "../../../types/artist";
 import { Track } from "../../../types/track";
 import { artistService, ArtistTrackSortMode } from "../../../services/artist.service";
 import { usePlayerStore } from "../../../stores/player-store";
+import { useAuthStore } from "../../../stores/auth-store";
 import { TrackList } from "../../../components/music/track-list";
 import {
   Play,
@@ -30,33 +31,6 @@ interface CommentItem {
   text: string;
 }
 
-const DEFAULT_COMMENTS: CommentItem[] = [
-  {
-    id: "c1",
-    author: "Dimon",
-    date: "19 March at 13:58",
-    text: "An absolute genius who inspired generations and set the standard for lyricism. Endless respect."
-  },
-  {
-    id: "c2",
-    author: "Alex_99",
-    date: "15 March at 01:47",
-    text: "Lose Yourself and Without Me are timeless masterpieces. Listening in 2026 and still giving goosebumps!"
-  },
-  {
-    id: "c3",
-    author: "Maximus",
-    date: "23 January at 21:05",
-    text: "The greatest rapper of all time. Every single album is packed with storytelling and energy."
-  },
-  {
-    id: "c4",
-    author: "Elena Star ❤️",
-    date: "04 January at 00:54",
-    text: "His flow and charisma are unmatched. The legendary king of the rap industry! 🔥"
-  }
-];
-
 const ITEMS_PER_PAGE = 8;
 
 export default function ArtistDetailPage() {
@@ -76,9 +50,35 @@ export default function ArtistDetailPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Comments state
-  const [comments, setComments] = useState<CommentItem[]>(DEFAULT_COMMENTS);
-  const [commentAuthor, setCommentAuthor] = useState("Javlon");
+  const [comments, setComments] = useState<CommentItem[]>([]);
+  const [commentAuthor, setCommentAuthor] = useState("Anonymous");
   const [commentText, setCommentText] = useState("");
+
+  const user = useAuthStore((s) => s.user);
+
+  useEffect(() => {
+    if (user) {
+      setCommentAuthor(user.name || `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username);
+    } else {
+      setCommentAuthor("Anonymous");
+    }
+  }, [user]);
+
+  // Load comments from localStorage on mount or id change
+  useEffect(() => {
+    if (typeof window !== "undefined" && id) {
+      const stored = localStorage.getItem("xitlar_artist_comments_" + id);
+      if (stored) {
+        try {
+          setComments(JSON.parse(stored));
+        } catch (e) {
+          console.error("Failed to parse comments", e);
+        }
+      } else {
+        setComments([]);
+      }
+    }
+  }, [id]);
 
   const playQueue = usePlayerStore((s) => s.playQueue);
 
@@ -140,15 +140,47 @@ export default function ArtistDetailPage() {
     e.preventDefault();
     if (!commentText.trim()) return;
 
+    const date = new Date();
+    const dayMonth = date.toLocaleDateString('en-US', { day: 'numeric', month: 'long' });
+    const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const formattedDate = `${dayMonth} at ${time}`;
+
     const newComment: CommentItem = {
       id: "c-" + Date.now(),
       author: commentAuthor.trim() || "Anonymous",
-      date: "Just now",
+      date: formattedDate,
       text: commentText.trim()
     };
 
-    setComments([newComment, ...comments]);
+    const updatedComments = [newComment, ...comments];
+    setComments(updatedComments);
     setCommentText("");
+
+    if (typeof window !== "undefined" && id) {
+      localStorage.setItem("xitlar_artist_comments_" + id, JSON.stringify(updatedComments));
+
+      // Store in user comments history if authenticated
+      if (user) {
+        const username = user.username;
+        const storedUserComments = localStorage.getItem("xitlar_user_comments_" + username);
+        let userCommentsList = [];
+        if (storedUserComments) {
+          try {
+            userCommentsList = JSON.parse(storedUserComments);
+          } catch (err) {
+            console.error("Failed to parse user comments", err);
+          }
+        }
+        const newUserComment = {
+          id: "uc-" + Date.now(),
+          targetName: `Artist: ${artist?.name || "Unknown Artist"}`,
+          text: commentText.trim(),
+          date: formattedDate
+        };
+        userCommentsList = [newUserComment, ...userCommentsList];
+        localStorage.setItem("xitlar_user_comments_" + username, JSON.stringify(userCommentsList));
+      }
+    }
   };
 
   // Pagination calculations
@@ -232,14 +264,21 @@ export default function ArtistDetailPage() {
           {/* Star Rating */}
           <div className="flex items-center justify-center sm:justify-start gap-1.5 pt-1 text-xs text-slate-500">
             <div className="flex text-amber-400">
-              <Star className="w-3.5 h-3.5 fill-current" />
-              <Star className="w-3.5 h-3.5 fill-current" />
-              <Star className="w-3.5 h-3.5 fill-current" />
-              <Star className="w-3.5 h-3.5 fill-current" />
-              <Star className="w-3.5 h-3.5 text-slate-200 fill-slate-200" />
+              {[1, 2, 3, 4, 5].map((index) => {
+                const filled = (artist.rating ?? 4.7) >= index;
+                return (
+                  <Star
+                    key={index}
+                    className={cn(
+                      "w-3.5 h-3.5",
+                      filled ? "fill-current" : "text-slate-200 fill-slate-200"
+                    )}
+                  />
+                );
+              })}
             </div>
-            <span className="font-bold text-slate-700">{artist.rating || 4.7}</span>
-            <span className="text-slate-400 text-[11px]">(votes: 13,221)</span>
+            <span className="font-bold text-slate-700">{(artist.rating ?? 4.7).toFixed(1)}</span>
+            <span className="text-slate-400 text-[11px]">(votes: {(artist.votesCount ?? 13221).toLocaleString()})</span>
           </div>
 
           {/* Action Buttons */}

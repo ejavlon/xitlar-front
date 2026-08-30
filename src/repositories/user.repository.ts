@@ -1,14 +1,18 @@
 import { User } from "../types/user";
-import { mockUser } from "../mock/users";
+import { useAuthStore } from "../stores/auth-store";
 
 export interface UserRepository {
   getCurrentUser(): Promise<User>;
 }
 
-export class MockUserRepository implements UserRepository {
+export class ApiUserRepository implements UserRepository {
   async getCurrentUser(): Promise<User> {
-    return mockUser;
+    const authState = useAuthStore.getState();
+    if (authState.isAuthenticated && authState.user) {
+      return authState.user;
+    }
+    throw new Error("No authenticated user session active.");
   }
 }
 
-export const userRepository: UserRepository = new MockUserRepository();
+export const userRepository: UserRepository = new ApiUserRepository();

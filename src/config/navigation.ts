@@ -24,7 +24,7 @@ export interface NavItem {
   color: string; // Background color class for circle badge
 }
 
-export const sefonNavItems: NavItem[] = [
+export const mainNavItems: NavItem[] = [
   { label: "New Releases", href: "/new", icon: Play, color: "bg-[#5fc3f3] text-white" },
   { label: "Collections", href: "/collections", icon: Music, color: "bg-[#ff6d8c] text-white" },
   { label: "Genres", href: "/genres", icon: Headphones, color: "bg-[#fec33d] text-white" },
@@ -42,7 +42,7 @@ export const sefonNavItems: NavItem[] = [
   { label: "Custom Selection", href: "/collections", icon: SlidersHorizontal, color: "bg-[#db9f89] text-white" },
 ];
 
-export const sefonGenreTags = [
+export const genreTags = [
   { label: "pop", slug: "pop" },
   { label: "club", slug: "club" },
   { label: "chanson", slug: "chanson" },
@@ -56,4 +56,3 @@ export const sefonGenreTags = [
   { label: "metal", slug: "metal" },
   { label: "more...", slug: "" },
 ];
-

@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Track } from "../../../types/track";
 import { Playlist } from "../../../types/playlist";
-import { mockTracks } from "../../../mock/tracks";
-import { mockPlaylists } from "../../../mock/playlists";
 import { usePlayerStore } from "../../../stores/player-store";
+import { useAuthStore } from "../../../stores/auth-store";
 import { formatDuration } from "../../../lib/formatters";
+import { api } from "../../../lib/api/client";
+import { musicService } from "../../../services/music.service";
 import {
   Disc,
   Play,
@@ -31,18 +32,37 @@ export default function CreatePlaylistPage() {
   const [title, setTitle] = useState("New Playlist");
   const [selectedTracks, setSelectedTracks] = useState<Track[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Track[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
-  // Filter search results from mock tracks
-  const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    const q = searchQuery.toLowerCase().trim();
-    return mockTracks.filter(
-      (t) =>
-        t.title.toLowerCase().includes(q) ||
-        t.artist.name.toLowerCase().includes(q)
-    );
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setCoverFile(file);
+    if (file) {
+      setCoverPreview(URL.createObjectURL(file));
+    } else {
+      setCoverPreview(null);
+    }
+  };
+
+  // Debounced real search
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const delayDebounce = setTimeout(async () => {
+      try {
+        const results = await musicService.searchTracks(searchQuery);
+        setSearchResults(results);
+      } catch (err) {
+        console.error("Search tracks failed:", err);
+      }
+    }, 300);
+    return () => clearTimeout(delayDebounce);
   }, [searchQuery]);
 
   // Calculate total playlist duration
@@ -66,29 +86,43 @@ export default function CreatePlaylistPage() {
     }
   };
 
-  const handleSavePlaylist = () => {
+  const user = useAuthStore((s) => s.user);
+
+  const handleSavePlaylist = async () => {
     if (!title.trim()) {
       alert("Please enter a playlist title.");
       return;
     }
     setIsSaving(true);
-
-    const newId = `pl-${Date.now()}`;
-    const newPlaylist: Playlist = {
-      id: newId,
-      title: title.trim(),
-      description: "Custom user playlist",
-      coverUrl:
-        selectedTracks[0]?.coverUrl ||
-        "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&h=600&fit=crop&q=80",
-      trackCount: selectedTracks.length,
-      isCollection: false,
-      creator: "Javlon",
-      tracks: selectedTracks
-    };
-
-    mockPlaylists.unshift(newPlaylist);
-    router.push(`/playlists/${newId}`);
+    try {
+      const formData = new FormData();
+      formData.append("data", new Blob([JSON.stringify({ title: title.trim(), description: "Custom user playlist" })], { type: "application/json" }));
+      if (coverFile) {
+        formData.append("file", coverFile);
+      }
+      
+      const playlistResponse = await api.post<any>("/api/v1/playlists", formData);
+      if (playlistResponse && playlistResponse.id) {
+        const playlistId = playlistResponse.id;
+        
+        // If there are tracks, bulk add them
+        if (selectedTracks.length > 0) {
+          const trackIds = selectedTracks.map(t => Number(t.id));
+          await api.post(`/api/v1/playlists/${playlistId}/musics/bulk`, {
+            musicIds: trackIds
+          });
+        }
+        
+        router.push(`/playlists/${playlistId}`);
+      } else {
+        throw new Error("Failed to create playlist");
+      }
+    } catch (err: any) {
+      console.error("Playlist creation failed:", err);
+      alert(err.message || "Failed to save playlist. Note: Standard USER role might be restricted from creating playlists on the backend.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -133,9 +167,17 @@ export default function CreatePlaylistPage() {
         </div>
 
         {/* Circular Vinyl / CD Placeholder Avatar */}
-        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-slate-200/80 border border-slate-300/80 flex items-center justify-center text-slate-400 shrink-0 shadow-inner">
-          <Disc className="w-14 h-14 stroke-[1.25] text-slate-400" />
-        </div>
+        <label className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-slate-200/80 border border-slate-300/80 flex items-center justify-center text-slate-400 shrink-0 shadow-inner overflow-hidden cursor-pointer hover:bg-slate-300/80 transition-colors relative group">
+          {coverPreview ? (
+            <img src={coverPreview} className="w-full h-full object-cover" alt="Preview" />
+          ) : (
+            <Disc className="w-14 h-14 stroke-[1.25] text-slate-400" />
+          )}
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[9px] font-bold uppercase tracking-wider">
+            Choose Cover
+          </div>
+          <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+        </label>
 
         {/* Playlist Info & Editable Title */}
         <div className="space-y-2.5 flex-1 min-w-0">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { User as UserType } from "@/types/user";
 import { Track } from "@/types/track";
 import { Artist } from "@/types/artist";
@@ -13,6 +13,7 @@ import { artistService } from "@/services/artist.service";
 import { TrackRow } from "@/components/music/track-row";
 import { ArtistGrid } from "@/components/music/artist-grid";
 import { PlaylistGrid } from "@/components/music/playlist-grid";
+import { useAuthStore } from "@/stores/auth-store";
 import { cn } from "@/lib/utils";
 import { Loader, Heart, Bell, Film, Plus } from "lucide-react";
 
@@ -40,38 +41,58 @@ const PROFILE_TABS: TabDef[] = [
   { key: "comments", label: "COMMENTS" },
 ];
 
+const normalizeTab = (tab: string | null): ProfileTab => {
+  if (!tab) return "likes";
+  const t = tab.toLowerCase();
+  if (t === "like" || t === "likes") return "likes";
+  if (t === "playlist" || t === "playlists") return "playlists";
+  if (t === "collection" || t === "collections") return "collections";
+  if (t === "artist" || t === "artists") return "artists";
+  if (t === "clip" || t === "clips") return "clips";
+  if (t === "update" || t === "updates") return "updates";
+  if (t === "comment" || t === "comments") return "comments";
+  return "likes";
+};
+
 export default function ProfilePage() {
   const searchParams = useSearchParams();
-  const initialTab = (searchParams?.get("tab") as ProfileTab) || "likes";
+  const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab);
+  const rawTab = searchParams?.get("tab");
+  const activeTab = normalizeTab(rawTab);
+
+  const { isAuthenticated, isInitialized } = useAuthStore();
+
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [likedTracks, setLikedTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const tabParam = searchParams?.get("tab") as ProfileTab;
-    if (tabParam && PROFILE_TABS.some((t) => t.key === tabParam)) {
-      setActiveTab(tabParam);
-    }
-  }, [searchParams]);
+    if (!isInitialized) return;
 
-  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [userData, trackData, artistData, playlistData] = await Promise.all([
+        const [userData, trackData, artistData, playlistData, likedTracksData] = await Promise.all([
           userService.getCurrentUser(),
           musicService.getPopularTracks(),
           artistService.getArtists(),
           musicService.getPlaylists(),
+          musicService.getLikedTracks(),
         ]);
         setCurrentUser(userData);
         setTracks(trackData);
         setArtists(artistData);
         setPlaylists(playlistData);
+        setLikedTracks(likedTracksData);
       } catch (err) {
         console.error("Error loading profile data:", err);
       } finally {
@@ -79,21 +100,36 @@ export default function ProfilePage() {
       }
     };
     fetchData();
-  }, []);
+  }, [isInitialized, isAuthenticated, router]);
 
-  const userName = currentUser?.name || "Javlon";
-  const userEmail = currentUser?.email || "javlon2677572@gmail.com";
+  const userName = currentUser ? (currentUser.name || `${currentUser.firstName || ""} ${currentUser.lastName || ""}`.trim() || currentUser.username) : "Guest";
+  const userEmail = currentUser?.username || "";
 
   // Filtered collections / playlists
   const userPlaylists = playlists.filter((p) => !p.isCollection);
   const userCollections = playlists.filter((p) => p.isCollection);
 
-  // Mock liked tracks (first 8 popular tracks for demonstration)
-  const likedTracks = tracks.slice(0, 8);
+  // User comments state and load effect
+  const [userComments, setUserComments] = useState<{ id: string; targetName: string; text: string; date: string }[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && currentUser) {
+      const username = currentUser.username;
+      const stored = localStorage.getItem("xitlar_user_comments_" + username);
+      if (stored) {
+        try {
+          setUserComments(JSON.parse(stored));
+        } catch (e) {
+          console.error("Failed to parse user comments", e);
+        }
+      } else {
+        setUserComments([]);
+      }
+    }
+  }, [currentUser]);
 
   return (
     <div className="space-y-6 select-none animate-fade-in font-sans">
-      {/* 1. TOP PROFILE HEADER SECTION (Matches Sefon Screenshot) */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-7 pt-2">
         {/* Grey User Silhouette Avatar */}
         <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#cbd5e1] flex items-end justify-center overflow-hidden shrink-0 shadow-inner">
@@ -178,7 +214,7 @@ export default function ProfilePage() {
             return (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => router.push(`/profile?tab=${tab.key}`, { scroll: false })}
                 className={cn(
                   "pb-2.5 text-xs font-bold tracking-wider transition-all whitespace-nowrap border-b-2 -mb-px select-none focus:outline-none",
                   isActive
@@ -340,33 +376,26 @@ export default function ProfilePage() {
           {/* TAB: COMMENTS */}
           {activeTab === "comments" && (
             <div className="space-y-3">
-              {[
-                {
-                  id: "c1",
-                  track: "Eminem — Mockingbird",
-                  comment: "One of the greatest tracks of all time!",
-                  date: "2 days ago",
-                },
-                {
-                  id: "c2",
-                  track: "Doxx — Yurak",
-                  comment: "Juda ajoyib trek, ovoz zo'r chiqqan.",
-                  date: "1 week ago",
-                },
-              ].map((c) => (
-                <div
-                  key={c.id}
-                  className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 space-y-1"
-                >
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-[#365377]">
-                      {c.track}
-                    </span>
-                    <span className="text-[10px] text-slate-400">{c.date}</span>
+              {userComments.length > 0 ? (
+                userComments.map((c) => (
+                  <div
+                    key={c.id}
+                    className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 space-y-1"
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-[#365377]">
+                        {c.targetName}
+                      </span>
+                      <span className="text-[10px] text-slate-400">{c.date}</span>
+                    </div>
+                    <p className="text-xs text-slate-600">{c.text}</p>
                   </div>
-                  <p className="text-xs text-slate-600">{c.comment}</p>
+                ))
+              ) : (
+                <div className="text-center py-8 text-xs text-slate-400">
+                  Siz hali birorta ham izoh qoldirmagansiz.
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>

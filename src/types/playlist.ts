@@ -4,7 +4,7 @@ export interface Playlist {
   id: string;
   title: string;
   description?: string;
-  coverUrl: string;
+  coverUrl?: string;
   trackCount: number;
   tracks?: Track[];
   isCollection?: boolean; // collections or playlists

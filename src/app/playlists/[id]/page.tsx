@@ -6,10 +6,11 @@ import { Playlist } from "../../../types/playlist";
 import { musicService } from "../../../services/music.service";
 import { usePlayerStore } from "../../../stores/player-store";
 import { TrackRow } from "../../../components/music/track-row";
+import { useAuthStore } from "../../../stores/auth-store";
 import { PlaylistGrid } from "../../../components/music/playlist-grid";
 import { formatDuration } from "../../../lib/formatters";
+import { api } from "../../../lib/api/client";
 import { cn } from "../../../lib/utils";
-import { mockPlaylists } from "../../../mock/playlists";
 import {
   Play,
   Share2,
@@ -22,7 +23,8 @@ import {
   ChevronRight,
   X,
   Disc,
-  Music2
+  Music2,
+  Edit2
 } from "lucide-react";
 
 interface CommentItem {
@@ -31,39 +33,6 @@ interface CommentItem {
   date: string;
   text: string;
 }
-
-const INITIAL_COMMENTS: CommentItem[] = [
-  {
-    id: "1",
-    author: "Vyacheslav",
-    date: "7 June at 13:15",
-    text: "Thanks to the creators of the site, very tasteful collections and awesome track selection!"
-  },
-  {
-    id: "2",
-    author: "Saule",
-    date: "30 April at 16:33",
-    text: "Great compilation, listening on repeat during daily commute."
-  },
-  {
-    id: "3",
-    author: "Elzhas",
-    date: "25 April at 10:59",
-    text: "Just registered today, but I've already been enjoying music here for years."
-  },
-  {
-    id: "4",
-    author: "Shakir",
-    date: "10 October 2025 at 07:46",
-    text: "A truly wonderful music site for any mood or weather."
-  },
-  {
-    id: "5",
-    author: "Julia Savchenko",
-    date: "20 April 2025 at 16:08",
-    text: "Huge thanks! Best site with high quality sound for every taste."
-  }
-];
 
 export default function PlaylistDetailPage() {
   const params = useParams();
@@ -76,45 +45,114 @@ export default function PlaylistDetailPage() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [comments, setComments] = useState<CommentItem[]>(INITIAL_COMMENTS);
-  const [commentAuthor, setCommentAuthor] = useState("Javlon");
+  const [comments, setComments] = useState<CommentItem[]>([]);
+  const [commentAuthor, setCommentAuthor] = useState("Anonymous");
   const [commentText, setCommentText] = useState("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  const playQueue = usePlayerStore((s) => s.playQueue);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
+  const [editCoverPreview, setEditCoverPreview] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
-    const fetchPlaylistData = async () => {
-      if (!id) return;
-      try {
-        setLoading(true);
-        const [data, allPlaylists, allTracks] = await Promise.all([
-          musicService.getPlaylistById(id),
-          musicService.getPlaylists(),
-          musicService.getPopularTracks()
-        ]);
+    if (user) {
+      setCommentAuthor(user.name || `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username);
+    } else {
+      setCommentAuthor("Anonymous");
+    }
+  }, [user]);
 
-        if (data) {
-          // If it is a curated collection, supplement tracks if few; if it is a user playlist, keep only its actual tracks!
-          let fullTracks = data.tracks || [];
-          if (data.isCollection && fullTracks.length < 8) {
-            fullTracks = [...fullTracks, ...allTracks.slice(0, 10 - fullTracks.length)];
-          }
-          setPlaylist({ ...data, tracks: fullTracks });
-        } else {
-          setPlaylist(null);
+  // Load comments from localStorage on mount or id change
+  useEffect(() => {
+    if (typeof window !== "undefined" && id) {
+      const stored = localStorage.getItem("xitlar_playlist_comments_" + id);
+      if (stored) {
+        try {
+          setComments(JSON.parse(stored));
+        } catch (e) {
+          console.error("Failed to parse comments", e);
         }
-
-        setSimilarPlaylists(allPlaylists.filter((p) => p.id !== id).slice(0, 6));
-      } catch (err) {
-        console.error("Error fetching playlist detail:", err);
-      } finally {
-        setLoading(false);
+      } else {
+        setComments([]);
       }
-    };
+    }
+  }, [id]);
 
+  const playQueue = usePlayerStore((s) => s.playQueue);
+
+  const fetchPlaylistData = async () => {
+    if (!id) return;
+    try {
+      setLoading(true);
+      const [data, allPlaylists] = await Promise.all([
+        musicService.getPlaylistById(id),
+        musicService.getPlaylists()
+      ]);
+
+      if (data) {
+        let fullTracks = data.tracks || [];
+        setPlaylist({ ...data, tracks: fullTracks });
+      } else {
+        setPlaylist(null);
+      }
+
+      setSimilarPlaylists(allPlaylists.filter((p) => p.id !== id).slice(0, 6));
+    } catch (err) {
+      console.error("Error fetching playlist detail:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchPlaylistData();
   }, [id]);
+
+  const openEditModal = () => {
+    if (!playlist) return;
+    setEditTitle(playlist.title);
+    setEditDescription(playlist.description || "");
+    setEditCoverFile(null);
+    setEditCoverPreview(playlist.coverUrl || null);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setEditCoverFile(file);
+    if (file) {
+      setEditCoverPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleUpdatePlaylist = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTitle.trim()) {
+      alert("Please enter a playlist title.");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const formData = new FormData();
+      formData.append("data", new Blob([JSON.stringify({ title: editTitle.trim(), description: editDescription.trim() })], { type: "application/json" }));
+      if (editCoverFile) {
+        formData.append("file", editCoverFile);
+      }
+      await api.put(`/api/v1/playlists/${playlist?.id}`, formData);
+      setIsEditModalOpen(false);
+      await fetchPlaylistData();
+    } catch (err: any) {
+      console.error("Failed to update playlist:", err);
+      alert(err.message || "Failed to update playlist.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handlePlayAll = () => {
     if (playlist && playlist.tracks && playlist.tracks.length > 0) {
@@ -129,27 +167,63 @@ export default function PlaylistDetailPage() {
     }
   };
 
-  const handleDeletePlaylist = () => {
-    const idx = mockPlaylists.findIndex((p) => p.id === id);
-    if (idx !== -1) {
-      mockPlaylists.splice(idx, 1);
+  const handleDeletePlaylist = async () => {
+    try {
+      if (/^\d+$/.test(id)) {
+        await api.delete(`/api/v1/playlists/${id}`);
+      }
+      router.push("/profile?tab=playlists");
+    } catch (err: any) {
+      console.error("Failed to delete playlist:", err);
+      alert(err.message || "Failed to delete playlist. Note: Standard USER role might be restricted on the backend.");
     }
-    router.push("/profile?tab=playlists");
   };
 
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim()) return;
 
+    const date = new Date();
+    const dayMonth = date.toLocaleDateString('en-US', { day: 'numeric', month: 'long' });
+    const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const formattedDate = `${dayMonth} at ${time}`;
+
     const newComment: CommentItem = {
       id: Date.now().toString(),
-      author: commentAuthor.trim() || "Javlon",
-      date: "Just now",
+      author: commentAuthor.trim() || "Anonymous",
+      date: formattedDate,
       text: commentText.trim()
     };
 
-    setComments([newComment, ...comments]);
+    const updatedComments = [newComment, ...comments];
+    setComments(updatedComments);
     setCommentText("");
+
+    if (typeof window !== "undefined" && id) {
+      localStorage.setItem("xitlar_playlist_comments_" + id, JSON.stringify(updatedComments));
+
+      // Store in user comments history if authenticated
+      if (user) {
+        const username = user.username;
+        const storedUserComments = localStorage.getItem("xitlar_user_comments_" + username);
+        let userCommentsList = [];
+        if (storedUserComments) {
+          try {
+            userCommentsList = JSON.parse(storedUserComments);
+          } catch (err) {
+            console.error("Failed to parse user comments", err);
+          }
+        }
+        const newUserComment = {
+          id: "uc-" + Date.now(),
+          targetName: `Playlist: ${playlist?.title || "Unknown Playlist"}`,
+          text: commentText.trim(),
+          date: formattedDate
+        };
+        userCommentsList = [newUserComment, ...userCommentsList];
+        localStorage.setItem("xitlar_user_comments_" + username, JSON.stringify(userCommentsList));
+      }
+    }
   };
 
   if (loading) {
@@ -207,45 +281,56 @@ export default function PlaylistDetailPage() {
         <ArrowLeft className="w-3.5 h-3.5" />
         <span>Back</span>
       </button>
-
-      {/* 1. HERO HEADER SECTION (Matching Sefon Screenshot 2) */}
+      
       <section className="relative flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-6 border-b border-slate-100">
-        {/* Top-Right Delete (X) Button with Confirmation Popover */}
-        <div className="absolute top-0 right-0 z-20">
-          <button
-            type="button"
-            onClick={() => setIsDeleteModalOpen(!isDeleteModalOpen)}
-            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors focus:outline-none cursor-pointer"
-            aria-label="Delete playlist"
-          >
-            <X className="w-5 h-5" />
-          </button>
+        {/* Top-Right Actions (Edit / Delete) */}
+        {!playlist.isCollection && (
+          <div className="absolute top-0 right-0 z-20 flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={openEditModal}
+              className="p-1.5 text-slate-400 hover:text-slate-750 rounded-full hover:bg-slate-100 transition-colors focus:outline-none cursor-pointer"
+              aria-label="Edit playlist"
+              title="Edit Playlist"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsDeleteModalOpen(!isDeleteModalOpen)}
+              className="p-1.5 text-slate-400 hover:text-slate-750 rounded-full hover:bg-slate-100 transition-colors focus:outline-none cursor-pointer"
+              aria-label="Delete playlist"
+              title="Delete Playlist"
+            >
+              <X className="w-5 h-5" />
+            </button>
 
-          {/* Delete Confirmation Popover (Matches Screenshot) */}
-          {isDeleteModalOpen && (
-            <div className="absolute right-0 top-9 w-60 sm:w-64 p-3.5 bg-[#456690] text-white rounded-xl shadow-2xl border border-[#38557a] z-50 animate-fade-in text-center select-none">
-              <p className="text-xs font-medium text-white/95 leading-snug mb-3">
-                Do you really want to delete the playlist?
-              </p>
-              <div className="flex items-center justify-center gap-2.5">
-                <button
-                  type="button"
-                  onClick={handleDeletePlaylist}
-                  className="px-3.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-900 text-xs font-bold rounded-full transition-colors shadow-2xs cursor-pointer focus:outline-none"
-                >
-                  Yes, delete
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsDeleteModalOpen(false)}
-                  className="px-3.5 py-1 bg-white hover:bg-slate-100 text-slate-800 text-xs font-semibold rounded-full transition-colors shadow-2xs cursor-pointer focus:outline-none"
-                >
-                  Cancel
-                </button>
+            {/* Delete Confirmation Popover (Matches Screenshot) */}
+            {isDeleteModalOpen && (
+              <div className="absolute right-0 top-9 w-60 sm:w-64 p-3.5 bg-[#456690] text-white rounded-xl shadow-2xl border border-[#38557a] z-50 animate-fade-in text-center select-none">
+                <p className="text-xs font-medium text-white/95 leading-snug mb-3">
+                  Do you really want to delete the playlist?
+                </p>
+                <div className="flex items-center justify-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={handleDeletePlaylist}
+                    className="px-3.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-900 text-xs font-bold rounded-full transition-colors shadow-2xs cursor-pointer focus:outline-none"
+                  >
+                    Yes, delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsDeleteModalOpen(false)}
+                    className="px-3.5 py-1 bg-white hover:bg-slate-100 text-slate-800 text-xs font-semibold rounded-full transition-colors shadow-2xs cursor-pointer focus:outline-none"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* Large Round Avatar Artwork */}
         <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border border-slate-200 shadow-sm shrink-0 bg-slate-100 flex items-center justify-center text-slate-400">
@@ -419,8 +504,7 @@ export default function PlaylistDetailPage() {
           </>
         )}
       </section>
-
-      {/* 3. PAGINATION (Dynamic Sliding Window - Matching Sefon Pagination) */}
+      
       {rawTracks.length > 0 &&
         (() => {
           const totalPages = 95;
@@ -513,8 +597,7 @@ export default function PlaylistDetailPage() {
             </div>
           );
         })()}
-
-      {/* 4. SIMILAR COLLECTIONS SECTION (Matching Sefon Screenshot 3) */}
+      
       <section className="space-y-3 pt-6 border-t border-slate-100">
         <h2 className="text-base sm:text-[18px] font-bold text-slate-900 tracking-tight">
           Similar Collections
@@ -522,7 +605,6 @@ export default function PlaylistDetailPage() {
         <PlaylistGrid playlists={similarPlaylists} />
       </section>
 
-      {/* 5. COMMENTS SECTION (Matching Sefon Screenshot 4) */}
       <section className="space-y-4 pt-6 border-t border-slate-100">
         <div className="flex items-center gap-2">
           <h2 className="text-base sm:text-[18px] font-bold text-slate-900 tracking-tight">
@@ -577,6 +659,84 @@ export default function PlaylistDetailPage() {
           ))}
         </div>
       </section>
+
+      {/* Edit Playlist Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <form onSubmit={handleUpdatePlaylist} className="w-full max-w-[420px] bg-white rounded-2xl border border-slate-200 p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <h3 className="text-sm font-bold text-slate-900 font-sans">
+                Edit Playlist Details
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 font-bold text-sm focus:outline-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Cover Image Upload (Clickable vinyl/CD silhouette) */}
+              <div className="flex flex-col items-center justify-center gap-2">
+                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">Cover Artwork</label>
+                <label className="w-24 h-24 rounded-full bg-slate-200/85 border border-slate-300 flex items-center justify-center text-slate-400 shrink-0 shadow-inner overflow-hidden cursor-pointer hover:bg-slate-300 transition-colors relative group">
+                  {editCoverPreview ? (
+                    <img src={editCoverPreview} className="w-full h-full object-cover" alt="Preview" />
+                  ) : (
+                    <Disc className="w-12 h-12 stroke-[1.25] text-slate-400" />
+                  )}
+                  <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[9px] font-bold uppercase tracking-wider">
+                    Change
+                  </div>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleEditFileChange} />
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-450 uppercase mb-1">Playlist Title</label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full h-[36px] px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:bg-white focus:border-indigo-500 transition-all text-slate-800 font-semibold"
+                  placeholder="e.g. My Favorites"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-450 uppercase mb-1">Description</label>
+                <textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  rows={3}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:bg-white focus:border-indigo-500 transition-all text-slate-800"
+                  placeholder="Describe your playlist..."
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="h-[32px] px-4 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-750 text-xs font-semibold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="h-[32px] px-5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+              >
+                {isSaving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

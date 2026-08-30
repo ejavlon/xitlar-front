@@ -5,9 +5,11 @@ import { Track } from "../../types/track";
 import { usePlayerStore } from "../../stores/player-store";
 import { formatDuration, formatReleaseDate, formatNumber } from "../../lib/formatters";
 import { cn } from "../../lib/utils";
+import { downloadTrack } from "../../lib/download";
 import { Play, Pause, Heart, Plus, Download, HeartCrack } from "lucide-react";
-import { useState, memo } from "react";
+import { useState, useEffect, memo } from "react";
 import { AddToPlaylistPopover } from "../player/add-to-playlist-popover";
+import { musicService } from "../../services/music.service";
 
 interface TrackRowProps {
   track: Track;
@@ -22,10 +24,17 @@ export const TrackRow = memo(function TrackRow({ track, playlistTracks, variant 
   const playTrack = usePlayerStore((s) => s.playTrack);
   const togglePlay = usePlayerStore((s) => s.togglePlay);
 
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(track.isLiked || false);
   const [likesCount, setLikesCount] = useState(track.likesCount || 0);
-  const [isDisliked, setIsDisliked] = useState(false);
-  const [dislikesCount, setDislikesCount] = useState(track.dislikesCount || 203);
+  const [isDisliked, setIsDisliked] = useState(track.isDisliked || false);
+  const [dislikesCount, setDislikesCount] = useState(track.dislikesCount ?? 0);
+
+  useEffect(() => {
+    setIsLiked(track.isLiked || false);
+    setLikesCount(track.likesCount || 0);
+    setIsDisliked(track.isDisliked || false);
+    setDislikesCount(track.dislikesCount ?? 0);
+  }, [track]);
 
   const handlePlayClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -36,8 +45,14 @@ export const TrackRow = memo(function TrackRow({ track, playlistTracks, variant 
     }
   };
 
-  const handleLikeClick = (e: React.MouseEvent) => {
+  const handleLikeClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    const oldIsLiked = isLiked;
+    const oldLikesCount = likesCount;
+    const oldIsDisliked = isDisliked;
+    const oldDislikesCount = dislikesCount;
+
+    // Optimistic UI updates
     if (isLiked) {
       setIsLiked(false);
       setLikesCount((prev) => Math.max(0, prev - 1));
@@ -49,10 +64,34 @@ export const TrackRow = memo(function TrackRow({ track, playlistTracks, variant 
         setDislikesCount((prev) => Math.max(0, prev - 1));
       }
     }
+
+    try {
+      const updatedTrack = await musicService.likeTrack(track.id);
+      setIsLiked(updatedTrack.isLiked || false);
+      setLikesCount(updatedTrack.likesCount || 0);
+      setIsDisliked(updatedTrack.isDisliked || false);
+      setDislikesCount(updatedTrack.dislikesCount || 0);
+      
+      // Update player store to sync across layout
+      usePlayerStore.getState().updateTrack(updatedTrack);
+    } catch (err) {
+      console.error("Failed to like track", err);
+      // Revert on error
+      setIsLiked(oldIsLiked);
+      setLikesCount(oldLikesCount);
+      setIsDisliked(oldIsDisliked);
+      setDislikesCount(oldDislikesCount);
+    }
   };
 
-  const handleDislikeClick = (e: React.MouseEvent) => {
+  const handleDislikeClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    const oldIsLiked = isLiked;
+    const oldLikesCount = likesCount;
+    const oldIsDisliked = isDisliked;
+    const oldDislikesCount = dislikesCount;
+
+    // Optimistic UI updates
     if (isDisliked) {
       setIsDisliked(false);
       setDislikesCount((prev) => Math.max(0, prev - 1));
@@ -64,6 +103,24 @@ export const TrackRow = memo(function TrackRow({ track, playlistTracks, variant 
         setLikesCount((prev) => Math.max(0, prev - 1));
       }
     }
+
+    try {
+      const updatedTrack = await musicService.dislikeTrack(track.id);
+      setIsLiked(updatedTrack.isLiked || false);
+      setLikesCount(updatedTrack.likesCount || 0);
+      setIsDisliked(updatedTrack.isDisliked || false);
+      setDislikesCount(updatedTrack.dislikesCount || 0);
+
+      // Update player store to sync across layout
+      usePlayerStore.getState().updateTrack(updatedTrack);
+    } catch (err) {
+      console.error("Failed to dislike track", err);
+      // Revert on error
+      setIsLiked(oldIsLiked);
+      setLikesCount(oldLikesCount);
+      setIsDisliked(oldIsDisliked);
+      setDislikesCount(oldDislikesCount);
+    }
   };
 
   const handleAddClick = (e: React.MouseEvent) => {
@@ -74,7 +131,7 @@ export const TrackRow = memo(function TrackRow({ track, playlistTracks, variant 
 
   const handleDownloadClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    alert(`Downloading "${track.title}" (mock state)`);
+    downloadTrack(track);
   };
 
   return (
@@ -93,8 +150,8 @@ export const TrackRow = memo(function TrackRow({ track, playlistTracks, variant 
             isCurrent && isPlaying
               ? "border-[#456690] text-[#456690]"
               : isCurrent
-              ? "border-[#456690] text-[#456690]"
-              : "border-slate-300 text-slate-500 group-hover:border-[#456690] group-hover:text-[#456690]"
+                ? "border-[#456690] text-[#456690]"
+                : "border-slate-300 text-slate-500 group-hover:border-[#456690] group-hover:text-[#456690]"
           )}
           aria-label={isCurrent && isPlaying ? "Pause" : "Play"}
         >
@@ -115,7 +172,7 @@ export const TrackRow = memo(function TrackRow({ track, playlistTracks, variant 
             {track.artist.name}
           </Link>
           <Link
-            href={`/artists/${track.artist.id}`}
+            href={`/tracks/${track.id}`}
             onClick={(e) => e.stopPropagation()}
             className="text-[11px] sm:text-[12px] text-slate-500 truncate mt-0.5 block hover:underline hover:text-[#456690] transition-colors cursor-pointer w-fit max-w-full"
           >

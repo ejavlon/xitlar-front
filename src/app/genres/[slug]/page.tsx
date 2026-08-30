@@ -38,12 +38,7 @@ export default function GenreDetailPage() {
           artistService.getArtists(),
         ]);
 
-        // If genre tracks are few in mock data, fill with popular tracks
         let allGenreTracks = tracksData;
-        if (allGenreTracks.length < 8) {
-          const popular = await musicService.getPopularTracks();
-          allGenreTracks = [...tracksData, ...popular.slice(0, 12 - tracksData.length)];
-        }
 
         setTracks(allGenreTracks);
         setPlaylists(playlistsData.length > 0 ? playlistsData : await musicService.getPlaylists());
@@ -66,8 +61,7 @@ export default function GenreDetailPage() {
       </div>
     );
   }
-
-  // Split tracks into Fresh Releases and Top Tracks (Matching Sefon Screenshot)
+  
   const freshTracks = showAllFresh ? tracks : tracks.slice(0, 5);
   const topTracks = showAllTop
     ? [...tracks].sort((a, b) => b.likesCount - a.likesCount)
@@ -135,8 +129,7 @@ export default function GenreDetailPage() {
           </div>
         </div>
       </div>
-
-      {/* 3. TOP ARTISTS SECTION (Matching Sefon Screenshot) */}
+    
       <section className="space-y-3 pt-4 border-t border-slate-100">
         <div className="flex items-center justify-between pb-1">
           <h2 className="text-base sm:text-[18px] font-bold text-slate-900 tracking-tight">
@@ -151,8 +144,7 @@ export default function GenreDetailPage() {
         </div>
         <ArtistGrid artists={artists} />
       </section>
-
-      {/* 4. COLLECTIONS / SELECTIONS SECTION (Matching Sefon Screenshot) */}
+      
       <section className="space-y-3 pt-4 border-t border-slate-100">
         <div className="flex items-center justify-between pb-1">
           <h2 className="text-base sm:text-[18px] font-bold text-slate-900 tracking-tight">

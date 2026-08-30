@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import { MobileNavigation } from "./mobile-navigation";
 import { MusicPlayer } from "../player/music-player";
 import { useMobile } from "../../hooks/use-mobile";
+import { useAuthStore } from "../../stores/auth-store";
 import { X } from "lucide-react";
 
 interface AppShellProps {
@@ -15,6 +16,11 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useMobile(1024);
+  const initializeAuth = useAuthStore((s) => s.initialize);
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);

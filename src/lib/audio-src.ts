@@ -1,3 +1,5 @@
+import { buildMediaUrl } from "./api/client";
+
 /**
  * Resolves a track's audioUrl into a playable URL.
  *
@@ -8,11 +10,20 @@
  * Once the backend serves audio with proper CORS headers, set
  * NEXT_PUBLIC_USE_AUDIO_PROXY=false to use direct URLs again.
  */
-const USE_AUDIO_PROXY = process.env.NEXT_PUBLIC_USE_AUDIO_PROXY !== "false";
-
 export function resolveAudioSrc(audioUrl: string): string {
-  if (!USE_AUDIO_PROXY || !audioUrl || !/^https?:\/\//i.test(audioUrl)) {
+  if (!audioUrl) return "";
+
+  // If the audio URL is a relative backend endpoint, starts with /api/v1, or contains /api/v1/ (like absolute backend URLs),
+  // resolve it using our dynamic API base URL.
+  if (audioUrl.startsWith("/api/v1") || audioUrl.includes("/api/v1/") || !/^https?:\/\//i.test(audioUrl)) {
+    return buildMediaUrl(audioUrl);
+  }
+
+  const USE_AUDIO_PROXY = process.env.NEXT_PUBLIC_USE_AUDIO_PROXY !== "false";
+  if (!USE_AUDIO_PROXY || !/^https?:\/\//i.test(audioUrl)) {
     return audioUrl;
   }
+  
   return `/api/audio?url=${encodeURIComponent(audioUrl)}`;
 }
+

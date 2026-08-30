@@ -7,14 +7,16 @@ import { useAudioPlayer } from "../../hooks/use-audio-player";
 import { usePlayerInit } from "../../hooks/use-player-init";
 import { formatDuration } from "../../lib/formatters";
 import { cn } from "../../lib/utils";
+import { downloadTrack } from "../../lib/download";
 import { MiniPlayer } from "./mini-player";
 import { VolumePopover } from "./volume-popover";
 import { EqualizerModal } from "./equalizer-modal";
 import { AddToPlaylistPopover } from "./add-to-playlist-popover";
 import { AudioQualityPopover } from "./audio-quality-popover";
-import { mockPlaylists } from "../../mock/playlists";
-import { mockArtists } from "../../mock/artists";
-import { mockTracks } from "../../mock/tracks";
+import { Playlist } from "../../types/playlist";
+import { Artist } from "../../types/artist";
+import { musicService } from "../../services/music.service";
+import { artistService } from "../../services/artist.service";
 import { TrackRow } from "../music/track-row";
 import {
   Play,
@@ -54,11 +56,45 @@ export function MusicPlayer() {
   const [queueModalOpen, setQueueModalOpen] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
+  const [playerPlaylists, setPlayerPlaylists] = useState<Playlist[]>([]);
+  const [playerArtists, setPlayerArtists] = useState<Artist[]>([]);
+
+  // Load playlists and artists dynamically
+  useEffect(() => {
+    const loadPlayerData = async () => {
+      try {
+        const [playlistsData, artistsData] = await Promise.all([
+          musicService.getPlaylists(),
+          artistService.getArtists()
+        ]);
+        setPlayerPlaylists(playlistsData || []);
+        setPlayerArtists(artistsData || []);
+      } catch (err) {
+        console.error("Failed to load player panel data:", err);
+      }
+    };
+    loadPlayerData();
+  }, []);
 
   // Sync liked state with track change
   useEffect(() => {
-    setIsLiked(false);
+    setIsLiked(currentTrack?.isLiked || false);
   }, [currentTrack]);
+
+  const handlePlayerLikeClick = async () => {
+    if (!currentTrack) return;
+    const oldIsLiked = isLiked;
+    const nextIsLiked = !oldIsLiked;
+    setIsLiked(nextIsLiked);
+    try {
+      const updatedTrack = await musicService.likeTrack(currentTrack.id);
+      setIsLiked(updatedTrack.isLiked || false);
+      usePlayerStore.getState().updateTrack(updatedTrack);
+    } catch (err) {
+      console.error("Failed to like track from player", err);
+      setIsLiked(oldIsLiked);
+    }
+  };
 
   const hasTrack = Boolean(currentTrack);
   const progressPercent = hasTrack && duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -78,9 +114,7 @@ export function MusicPlayer() {
       {/* MOBILE MINI PLAYER (Mobile / Tablet < 1024px) */}
       <MiniPlayer onOpenQueue={() => setQueueModalOpen(true)} />
 
-      {/* DESKTOP PLAYER (>= 1024px) - Matches Sefon Design */}
       <div className="hidden lg:flex fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[1100px] h-[66px] bg-white border-t border-slate-200 select-none z-50 shadow-[0_-4px_25px_rgba(0,0,0,0.15)] flex-col justify-between px-4 sm:px-6 py-1.5">
-        {/* Top Scrubber with Time Labels on the Left & Right (Matching Sefon Screenshot) */}
         <div className="w-full relative flex items-center gap-3">
           {/* Current Time on Left */}
           <span className={cn("text-[11px] font-medium select-none min-w-[32px]", hasTrack ? "text-slate-400" : "text-slate-300")}>
@@ -185,8 +219,8 @@ export function MusicPlayer() {
                 !hasTrack
                   ? "text-slate-300 pointer-events-none cursor-not-allowed"
                   : queueModalOpen
-                  ? "bg-[#365377] text-white shadow-xs cursor-pointer"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+                    ? "bg-[#365377] text-white shadow-xs cursor-pointer"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
               )}
               aria-label="Toggle playlist queue overlay"
             >
@@ -203,8 +237,8 @@ export function MusicPlayer() {
                 !hasTrack
                   ? "text-slate-300 pointer-events-none cursor-not-allowed"
                   : repeatMode !== "off"
-                  ? "text-amber-500 font-bold hover:bg-slate-100 cursor-pointer"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+                    ? "text-amber-500 font-bold hover:bg-slate-100 cursor-pointer"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
               )}
               aria-label={`Repeat mode: ${repeatMode}`}
             >
@@ -226,8 +260,8 @@ export function MusicPlayer() {
                 !hasTrack
                   ? "text-slate-300 pointer-events-none cursor-not-allowed"
                   : isShuffled
-                  ? "text-amber-500 font-bold hover:bg-slate-100 cursor-pointer"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+                    ? "text-amber-500 font-bold hover:bg-slate-100 cursor-pointer"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
               )}
               aria-label="Shuffle queue"
             >
@@ -266,15 +300,15 @@ export function MusicPlayer() {
             {/* Like */}
             <button
               type="button"
-              onClick={hasTrack ? () => setIsLiked(!isLiked) : undefined}
+              onClick={hasTrack ? handlePlayerLikeClick : undefined}
               disabled={!hasTrack}
               className={cn(
                 "p-1 transition-colors focus:outline-none",
                 !hasTrack
                   ? "text-slate-300 pointer-events-none cursor-not-allowed"
                   : isLiked
-                  ? "text-red-500 fill-red-500 cursor-pointer"
-                  : "text-slate-500 hover:text-slate-900 cursor-pointer"
+                    ? "text-red-500 fill-red-500 cursor-pointer"
+                    : "text-slate-500 hover:text-slate-900 cursor-pointer"
               )}
               aria-label={isLiked ? "Unlike" : "Like"}
             >
@@ -287,7 +321,7 @@ export function MusicPlayer() {
             {/* Download */}
             <button
               type="button"
-              onClick={hasTrack && currentTrack ? () => alert(`Downloading "${currentTrack.title}" (mock state)`) : undefined}
+              onClick={hasTrack && currentTrack ? () => downloadTrack(currentTrack) : undefined}
               disabled={!hasTrack}
               className={cn(
                 "p-1 transition-colors focus:outline-none",
@@ -307,7 +341,6 @@ export function MusicPlayer() {
       {/* QUEUE / PLAYLIST FULL OVERLAY (Positioned from Top down to Bottom Player Bar) */}
       {queueModalOpen && currentTrack && (
         <div className="fixed top-0 bottom-[66px] left-0 right-0 mx-auto w-full max-w-[1100px] z-50 flex flex-col bg-white shadow-2xl border-x border-slate-200 animate-fade-in select-none">
-          {/* Overlay Header: Left Title + Artwork + Right Clean Close Button (Matching Sefon Screenshot) */}
           <div className="h-11 border-b border-slate-100 px-4 sm:px-6 flex items-center justify-between bg-white shrink-0">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-slate-100 shadow-2xs">
@@ -351,7 +384,6 @@ export function MusicPlayer() {
               )}
             </div>
 
-            {/* Right: Category Tabs Accordion (Matching Sefon Screenshot) */}
             <div className="hidden md:block w-64 border-l border-slate-100 p-4 space-y-1 overflow-y-auto bg-white">
               {/* 1. My Playlists */}
               <div className="border-b border-slate-100">
@@ -369,7 +401,7 @@ export function MusicPlayer() {
                 </div>
                 {openAccordion === "playlists" && (
                   <div className="pb-3 pl-2 space-y-1.5 animate-fade-in text-xs text-slate-600">
-                    {mockPlaylists.filter(p => !p.isCollection).map((pl) => (
+                    {playerPlaylists.filter(p => !p.isCollection).map((pl) => (
                       <div
                         key={pl.id}
                         onClick={() => {
@@ -402,13 +434,17 @@ export function MusicPlayer() {
                 </div>
                 {openAccordion === "artists" && (
                   <div className="pb-3 pl-2 space-y-1.5 animate-fade-in text-xs text-slate-600">
-                    {mockArtists.slice(0, 8).map((artist) => (
+                    {playerArtists.slice(0, 8).map((artist) => (
                       <div
                         key={artist.id}
-                        onClick={() => {
-                          const artistTracks = mockTracks.filter(t => t.artist.id === artist.id);
-                          if (artistTracks.length > 0) {
-                            playQueue(artistTracks, 0, true);
+                        onClick={async () => {
+                          try {
+                            const artistTracks = await artistService.getTracksByArtist(artist.id);
+                            if (artistTracks.length > 0) {
+                              playQueue(artistTracks, 0, true);
+                            }
+                          } catch (err) {
+                            console.error("Failed to load artist tracks:", err);
                           }
                         }}
                         className="py-1 px-2 rounded hover:bg-slate-50 cursor-pointer truncate hover:text-slate-900"
@@ -436,7 +472,7 @@ export function MusicPlayer() {
                 </div>
                 {openAccordion === "collections" && (
                   <div className="pb-3 pl-2 space-y-1.5 animate-fade-in text-xs text-slate-600">
-                    {mockPlaylists.filter(p => p.isCollection).map((coll) => (
+                    {playerPlaylists.filter(p => p.isCollection).map((coll) => (
                       <div
                         key={coll.id}
                         onClick={() => {

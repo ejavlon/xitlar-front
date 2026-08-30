@@ -12,7 +12,7 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-        sefon: {
+        music: {
           header: "#365377",
           headerDark: "#2d4665",
           accent: "#f59e0b",
@@ -31,4 +31,3 @@ const config: Config = {
   plugins: [],
 };
 export default config;
-

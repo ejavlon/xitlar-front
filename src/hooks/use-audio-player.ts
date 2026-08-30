@@ -18,8 +18,13 @@ let filters: BiquadFilterNode[] = [];
 let preampGainNode: GainNode | null = null;
 let isAudioContextInitialized = false;
 
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && typeof Audio !== "undefined") {
   audio = new Audio();
+  try {
+    audio.crossOrigin = "anonymous";
+  } catch (e) {
+    console.warn("Failed to set crossOrigin on Audio:", e);
+  }
 }
 
 /**

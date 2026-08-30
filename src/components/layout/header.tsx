@@ -16,7 +16,8 @@ import {
   AlignLeft,
   X,
   Play,
-  Pause
+  Pause,
+  ShieldCheck
 } from "lucide-react";
 import Link from "next/link";
 import { User as UserType } from "../../types/user";
@@ -151,8 +152,7 @@ function HeaderSearchBar() {
           <Search className="w-3.5 h-3.5 stroke-[2.5] text-slate-900" />
         </button>
       </form>
-
-      {/* Live Search Suggestions Dropdown (Matches Sefon / Modern Music Style) */}
+      
       {isOpen && searchQuery.trim() && (
         <div className="absolute left-0 right-0 top-[35px] bg-white rounded-lg shadow-2xl border border-slate-200/90 z-50 overflow-hidden animate-in fade-in-50 duration-150 text-slate-800">
           {isLoading && !hasSuggestions ? (
@@ -279,7 +279,14 @@ export function Header({ onMenuToggle }: HeaderProps) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const logout = useAuthStore((s) => s.logout);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  const isAuthorized = isAuthenticated && (user?.role === "ADMIN" || user?.role === "MODERATOR");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Handle outside click to close dropdown
   useEffect(() => {
@@ -292,7 +299,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
-  const userName = user?.name || "Javlon";
+  const userName = user ? (user.name || `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username) : "Guest";
 
   return (
     <header className="h-[66px] bg-[#456690] text-white flex items-center justify-between px-4 sticky top-0 z-40 shadow-xs w-full">
@@ -336,7 +343,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
         </Link>
 
         {/* User Button Pill & Dropdown / Sign In Button */}
-        {isAuthenticated && user ? (
+        {mounted && isAuthenticated && user ? (
           <div className="relative" ref={dropdownRef}>
             <button
               type="button"
@@ -450,6 +457,18 @@ export function Header({ onMenuToggle }: HeaderProps) {
                     <Settings className="w-4 h-4 text-slate-400" />
                     <span>Settings</span>
                   </Link>
+
+                  {isAuthorized && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2 hover:bg-slate-50 hover:text-indigo-650 transition-colors font-semibold"
+                      role="menuitem"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-indigo-500" />
+                      <span>Admin Panel</span>
+                    </Link>
+                  )}
                 </div>
 
                 <div className="py-1">

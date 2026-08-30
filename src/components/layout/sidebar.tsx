@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { sefonNavItems, sefonGenreTags } from "../../config/navigation";
+import { mainNavItems, genreTags } from "../../config/navigation";
 import { cn } from "../../lib/utils";
+
+import { useAuthStore } from "../../stores/auth-store";
 
 interface SidebarProps {
   onClose?: () => void; // for mobile drawer close
@@ -11,6 +13,19 @@ interface SidebarProps {
 
 export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  const isAuthorized = isAuthenticated && (user?.role === "ADMIN" || user?.role === "MODERATOR");
+
+  const filteredNavItems = mainNavItems.filter((item) => {
+    if (item.href === "/upload") {
+      return isAuthorized;
+    }
+    return true;
+  });
+
+  const visibleNavItems = [...filteredNavItems];
 
   const handleLinkClick = () => {
     if (onClose) onClose();
@@ -20,7 +35,7 @@ export function Sidebar({ onClose }: SidebarProps) {
     <div className="w-full flex flex-col gap-4 select-none">
       {/* 1. Discover / Categories Section */}
       <nav className="flex flex-col space-y-0.5">
-        {sefonNavItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive =
             pathname === item.href ||
             (item.href !== "/" && pathname.startsWith(item.href));
@@ -59,7 +74,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           Music by Genres
         </h3>
         <div className="grid grid-cols-3 gap-1.5">
-          {sefonGenreTags.map((tag) => {
+          {genreTags.map((tag) => {
             const isSelected = Boolean(tag.slug && pathname === `/genres/${tag.slug}`);
             const isMore = tag.label === "more...";
 
@@ -84,4 +99,3 @@ export function Sidebar({ onClose }: SidebarProps) {
     </div>
   );
 }
-

@@ -9,6 +9,14 @@ export interface Album {
   releaseDate: string;
 }
 
+export interface TrackLyrics {
+  id: number;
+  text: string;
+  language: string;
+  isSynced: boolean;
+  lrcContent?: string;
+}
+
 export interface Track {
   id: string;
   title: string;
@@ -20,7 +28,10 @@ export interface Track {
   releaseDate: string;
   likesCount: number;
   dislikesCount: number;
+  isLiked?: boolean;
+  isDisliked?: boolean;
   bitrate?: number;
   sampleRate?: number;
   format?: AudioFormat;
+  lyrics?: TrackLyrics;
 }
