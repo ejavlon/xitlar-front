@@ -12,6 +12,7 @@ export interface ArtistRepository {
   getTracksByArtist(artistId: string): Promise<Track[]>;
   searchArtists(query: string): Promise<Artist[]>;
   getSimilarArtists(artistId: string): Promise<Artist[]>;
+  voteArtist(artistId: string, rating: number): Promise<Artist | null>;
 }
 
 export function mapArtistToArtist(artist: BackendArtistResponse): Artist {
@@ -23,6 +24,7 @@ export function mapArtistToArtist(artist: BackendArtistResponse): Artist {
     trackCount: artist.countOfTrack || 0,
     rating: artist.averageRating,
     votesCount: artist.voteCount,
+    userRating: artist.userRating,
     listenersCount: undefined
   };
 }
@@ -72,6 +74,11 @@ export class MockArtistRepository implements ArtistRepository {
 
     const others = mockArtists.filter((a) => a.id !== artistId && !sameGenre.includes(a));
     return [...sameGenre, ...others].slice(0, 6);
+  }
+
+  async voteArtist(_artistId: string, _rating: number): Promise<Artist | null> {
+    // Mock implementation - no-op
+    return null;
   }
 }
 
@@ -123,6 +130,11 @@ export class ApiArtistRepository implements ArtistRepository {
 
     const others = allArtists.filter((a: Artist) => a.id !== artistId && !sameGenre.includes(a));
     return [...sameGenre, ...others].slice(0, 6);
+  }
+
+  async voteArtist(artistId: string, rating: number): Promise<Artist | null> {
+    const data = await api.post<BackendArtistResponse>(`/api/v1/artists/${artistId}/vote`, { rating });
+    return mapArtistToArtist(data);
   }
 }
 

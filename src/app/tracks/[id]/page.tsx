@@ -11,6 +11,7 @@ import { useAuthStore } from "../../../stores/auth-store";
 import { api } from "../../../lib/api/client";
 import { TrackRow } from "../../../components/music/track-row";
 import { AddToPlaylistPopover } from "../../../components/player/add-to-playlist-popover";
+import { downloadTrack } from "../../../lib/download";
 import {
   Play,
   Pause,
@@ -113,13 +114,8 @@ export default function TrackDetailPage() {
   };
 
   const handleDownload = () => {
-    if (typeof window !== "undefined" && track) {
-      const link = document.createElement("a");
-      link.href = track.audioUrl;
-      link.setAttribute("download", `${track.artist.name} - ${track.title}.${track.format || 'mp3'}`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    if (track) {
+      downloadTrack(track);
     }
   };
 

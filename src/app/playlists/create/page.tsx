@@ -30,6 +30,7 @@ export default function CreatePlaylistPage() {
   const isPlaying = usePlayerStore((s) => s.isPlaying);
 
   const [title, setTitle] = useState("New Playlist");
+  const [tagName, setTagName] = useState("playlists");
   const [selectedTracks, setSelectedTracks] = useState<Track[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Track[]>([]);
@@ -95,8 +96,9 @@ export default function CreatePlaylistPage() {
     }
     setIsSaving(true);
     try {
+      const cleanTag = tagName.trim().replace(/^#/, "") || "playlists";
       const formData = new FormData();
-      formData.append("data", new Blob([JSON.stringify({ title: title.trim(), description: "Custom user playlist" })], { type: "application/json" }));
+      formData.append("data", new Blob([JSON.stringify({ title: title.trim(), tagName: cleanTag, description: "Custom user playlist" })], { type: "application/json" }));
       if (coverFile) {
         formData.append("file", coverFile);
       }
@@ -119,7 +121,7 @@ export default function CreatePlaylistPage() {
       }
     } catch (err: any) {
       console.error("Playlist creation failed:", err);
-      alert(err.message || "Failed to save playlist. Note: Standard USER role might be restricted from creating playlists on the backend.");
+      alert(err.message || "Failed to save playlist.");
     } finally {
       setIsSaving(false);
     }
@@ -194,11 +196,16 @@ export default function CreatePlaylistPage() {
             </div>
           </div>
 
-          {/* Tag badge */}
-          <div className="flex items-center gap-2">
-            <span className="text-[11.5px] font-medium text-slate-600 bg-white border border-slate-200 px-2.5 py-0.5 rounded-full shadow-2xs">
-              # playlists
-            </span>
+          {/* Editable Tag Name Badge */}
+          <div className="flex items-center gap-1.5 pt-0.5">
+            <span className="text-[11.5px] font-bold text-slate-400">#</span>
+            <input
+              type="text"
+              value={tagName}
+              onChange={(e) => setTagName(e.target.value)}
+              placeholder="playlists"
+              className="text-[11.5px] font-medium text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded-full shadow-2xs outline-none focus:border-[#456690] max-w-[140px]"
+            />
           </div>
 
           {/* Action Buttons */}

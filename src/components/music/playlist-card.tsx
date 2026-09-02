@@ -26,6 +26,11 @@ export const PlaylistCard = memo(function PlaylistCard({ playlist }: PlaylistCar
       <h4 className="text-[12px] font-bold text-slate-800 group-hover:text-[#365377] transition-colors truncate w-full text-center">
         {playlist.title}
       </h4>
+      {playlist.tagName && (
+        <span className="text-[10px] font-semibold text-slate-400 group-hover:text-indigo-600 transition-colors mt-0.5 truncate max-w-full">
+          #{playlist.tagName}
+        </span>
+      )}
     </Link>
   );
 });

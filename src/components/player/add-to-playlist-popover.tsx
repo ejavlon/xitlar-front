@@ -33,7 +33,7 @@ export function AddToPlaylistPopover({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const isAuthorized = user && (user.role === "ADMIN" || user.role === "MODERATOR");
+  const isAuthorized = Boolean(user);
 
   // Fetch playlists dynamically when open
   useEffect(() => {

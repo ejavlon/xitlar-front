@@ -52,10 +52,12 @@ export default function PlaylistDetailPage() {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editTitle, setEditTitle] = useState("");
+  const [editTagName, setEditTagName] = useState("playlists");
   const [editDescription, setEditDescription] = useState("");
   const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
   const [editCoverPreview, setEditCoverPreview] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
 
   const user = useAuthStore((s) => s.user);
 
@@ -116,6 +118,7 @@ export default function PlaylistDetailPage() {
   const openEditModal = () => {
     if (!playlist) return;
     setEditTitle(playlist.title);
+    setEditTagName(playlist.tagName || "playlists");
     setEditDescription(playlist.description || "");
     setEditCoverFile(null);
     setEditCoverPreview(playlist.coverUrl || null);
@@ -138,8 +141,21 @@ export default function PlaylistDetailPage() {
     }
     setIsSaving(true);
     try {
+      const cleanTag = editTagName.trim().replace(/^#/, "") || "playlists";
       const formData = new FormData();
-      formData.append("data", new Blob([JSON.stringify({ title: editTitle.trim(), description: editDescription.trim() })], { type: "application/json" }));
+      formData.append(
+        "data",
+        new Blob(
+          [
+            JSON.stringify({
+              title: editTitle.trim(),
+              tagName: cleanTag,
+              description: editDescription.trim()
+            })
+          ],
+          { type: "application/json" }
+        )
+      );
       if (editCoverFile) {
         formData.append("file", editCoverFile);
       }
@@ -151,6 +167,26 @@ export default function PlaylistDetailPage() {
       alert(err.message || "Failed to update playlist.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleVotePlaylist = async (rating: number) => {
+    if (!playlist) return;
+    try {
+      const updated = await musicService.votePlaylist(playlist.id, rating);
+      setPlaylist((prev) =>
+        prev
+          ? {
+              ...prev,
+              averageRating: updated.averageRating,
+              voteCount: updated.voteCount,
+              userRating: updated.userRating
+            }
+          : null
+      );
+    } catch (err: any) {
+      console.error("Failed to vote playlist:", err);
+      alert(err.message || "Please sign in to vote on playlists.");
     }
   };
 
@@ -175,7 +211,7 @@ export default function PlaylistDetailPage() {
       router.push("/profile?tab=playlists");
     } catch (err: any) {
       console.error("Failed to delete playlist:", err);
-      alert(err.message || "Failed to delete playlist. Note: Standard USER role might be restricted on the backend.");
+      alert(err.message || "Failed to delete playlist.");
     }
   };
 
@@ -332,8 +368,8 @@ export default function PlaylistDetailPage() {
           </div>
         )}
 
-        {/* Large Round Avatar Artwork */}
-        <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border border-slate-200 shadow-sm shrink-0 bg-slate-100 flex items-center justify-center text-slate-400">
+        {/* Large Round Avatar Artwork (Matches Screenshot) */}
+        <div className="w-32 h-32 sm:w-36 sm:h-36 rounded-full overflow-hidden border border-slate-200/90 shadow-xs shrink-0 bg-slate-100 flex items-center justify-center text-slate-400">
           {!playlist.isCollection && rawTracks.length === 0 ? (
             <Disc className="w-16 h-16 stroke-[1.25] text-slate-400" />
           ) : (
@@ -346,72 +382,98 @@ export default function PlaylistDetailPage() {
         </div>
 
         {/* Collection / Playlist Meta Details */}
-        <div className="flex-1 text-center sm:text-left space-y-2 min-w-0">
+        <div className="flex-1 text-center sm:text-left space-y-3 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight truncate">
             {playlist.title}
           </h1>
 
-          {/* Subtitle details: Date • Duration • Tracks */}
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 gap-y-1 text-xs text-slate-500 font-medium font-mono">
+          {/* Subtitle details: Created Date   Duration   Tracks (Matches Screenshot) */}
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-6 text-xs text-slate-500 font-medium font-mono">
+            <span>
+              {playlist.createdAt
+                ? new Date(playlist.createdAt).toLocaleDateString("en-US", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric"
+                  })
+                : "1 September 2026"}
+            </span>
             <span>{formatDuration(totalDuration || 0, true)}</span>
-            {playlist.isCollection && (
-              <>
-                <span>&bull;</span>
-                <span>21 August 2026</span>
-                <span>&bull;</span>
-                <span>{playlist.trackCount || rawTracks.length} tracks</span>
-              </>
-            )}
+            <span>{playlist.trackCount || rawTracks.length} tracks</span>
           </div>
 
-          {/* Tags */}
+          {/* Tag Name Badges (Matches Screenshot) */}
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-0.5">
-            {playlist.isCollection ? (
-              <>
-                <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded">
-                  #summer
-                </span>
-                <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded">
-                  #vibe
-                </span>
-                <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded">
-                  #collection
-                </span>
-              </>
-            ) : (
-              <span className="text-[11.5px] font-medium text-slate-600 bg-white border border-slate-200 px-2.5 py-0.5 rounded-full shadow-2xs">
-                # playlists
-              </span>
-            )}
+            {(playlist.tagName || "playlists")
+              .split(",")
+              .map((tagStr) => tagStr.trim())
+              .filter(Boolean)
+              .map((tagItem) => {
+                const cleanTag = tagItem.replace(/^#/, "");
+                return (
+                  <button
+                    type="button"
+                    key={cleanTag}
+                    onClick={() => {
+                      router.push(`/collections/${encodeURIComponent(cleanTag.toLowerCase())}`);
+                    }}
+                    className="text-[11.5px] font-medium text-slate-600 hover:text-indigo-600 bg-white hover:bg-slate-50 border border-slate-200/90 hover:border-indigo-200 px-3 py-1 rounded-full shadow-2xs transition-colors cursor-pointer"
+                  >
+                    # {cleanTag}
+                  </button>
+                );
+              })}
           </div>
 
-          {/* Rating (Only for curated collections) */}
-          {playlist.isCollection && (
-            <div className="flex items-center justify-center sm:justify-start gap-1.5 pt-1 text-xs text-slate-500">
-              <div className="flex text-amber-400">
-                <Star className="w-3.5 h-3.5 fill-current" />
-                <Star className="w-3.5 h-3.5 fill-current" />
-                <Star className="w-3.5 h-3.5 fill-current" />
-                <Star className="w-3.5 h-3.5 fill-current" />
-                <Star className="w-3.5 h-3.5 text-slate-200 fill-slate-200" />
-              </div>
-              <span className="font-bold text-slate-700">4.2</span>
-              <span className="text-slate-400 text-[11px]">(votes: 13,409)</span>
+          {/* Rating & Voting (Matches Screenshot: 4 yellow stars + 1 gray, 4.2 (votes: 13422)) */}
+          <div className="flex items-center justify-center sm:justify-start gap-2 pt-0.5 text-xs text-slate-500">
+            <div className="flex items-center gap-0.5">
+              {[1, 2, 3, 4, 5].map((star) => {
+                const activeRating =
+                  hoverRating !== null
+                    ? hoverRating
+                    : playlist.userRating || Math.round(playlist.averageRating || 0);
+                const isFilled = star <= activeRating;
+                return (
+                  <button
+                    type="button"
+                    key={star}
+                    onClick={() => handleVotePlaylist(star)}
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(null)}
+                    className="p-0.5 focus:outline-none transition-transform hover:scale-110 cursor-pointer"
+                    title={`Rate ${star} star${star > 1 ? "s" : ""}`}
+                  >
+                    <Star
+                      className={cn(
+                        "w-4 h-4 transition-colors",
+                        isFilled ? "text-amber-400 fill-amber-400" : "text-slate-200 fill-slate-100"
+                      )}
+                    />
+                  </button>
+                );
+              })}
             </div>
-          )}
+            <span className="font-bold text-slate-800 text-sm ml-0.5">
+              {(playlist.averageRating || 0.0).toFixed(1)}
+            </span>
+            <span className="text-slate-400 text-xs font-normal">
+              (votes: {playlist.voteCount || 0})
+            </span>
+          </div>
 
-          {/* Action Buttons (Matches Screenshot 2) */}
-          <div className="flex items-center justify-center sm:justify-start gap-2.5 pt-3">
+          {/* Action Buttons (Matches Screenshot 2: Yellow Listen button, +, Reload, Share) */}
+          <div className="flex items-center justify-center sm:justify-start gap-2.5 pt-2">
             {/* Play All Yellow Button */}
             <button
               type="button"
               onClick={handlePlayAll}
               disabled={rawTracks.length === 0}
               className={cn(
-                "flex items-center gap-2 px-5 py-1.5 text-xs font-bold rounded-full transition-colors shadow-xs focus:outline-none",
+                "flex items-center gap-2 px-6 py-2 text-xs font-bold rounded-full border transition-all shadow-2xs focus:outline-none",
                 rawTracks.length > 0
-                  ? "bg-amber-400 hover:bg-amber-500 text-slate-900 cursor-pointer"
-                  : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                  ? "bg-[#FCE453] hover:bg-[#ebd344] border-[#e5cd40] text-slate-900 cursor-pointer active:scale-98"
+                  : "bg-slate-200 border-slate-200 text-slate-400 cursor-not-allowed"
               )}
             >
               <Play className="w-3.5 h-3.5 fill-current" />
@@ -422,18 +484,20 @@ export default function PlaylistDetailPage() {
             <button
               type="button"
               onClick={() => alert(`Added "${playlist.title}" to favorites`)}
-              className="w-8 h-8 rounded-full border border-slate-300 hover:border-slate-400 text-slate-600 flex items-center justify-center transition-colors focus:outline-none"
+              className="w-9 h-9 rounded-full border border-slate-300/80 hover:border-slate-400 text-slate-700 bg-white flex items-center justify-center transition-colors focus:outline-none shadow-2xs cursor-pointer"
               aria-label="Add to favorites"
+              title="Add to favorites"
             >
               <Plus className="w-4 h-4" />
             </button>
 
-            {/* Reload / Updates */}
+            {/* Reload / Refresh */}
             <button
               type="button"
-              onClick={() => alert("Playlist refreshed!")}
-              className="w-8 h-8 rounded-full border border-slate-300 hover:border-slate-400 text-slate-600 flex items-center justify-center transition-colors focus:outline-none"
-              aria-label="Refresh collection"
+              onClick={() => fetchPlaylistData()}
+              className="w-9 h-9 rounded-full border border-slate-300/80 hover:border-slate-400 text-slate-700 bg-white flex items-center justify-center transition-colors focus:outline-none shadow-2xs cursor-pointer"
+              aria-label="Refresh playlist"
+              title="Refresh playlist"
             >
               <RotateCw className="w-3.5 h-3.5" />
             </button>
@@ -442,8 +506,9 @@ export default function PlaylistDetailPage() {
             <button
               type="button"
               onClick={handleShare}
-              className="w-8 h-8 rounded-full border border-slate-300 hover:border-slate-400 text-slate-600 flex items-center justify-center transition-colors focus:outline-none"
+              className="w-9 h-9 rounded-full border border-slate-300/80 hover:border-slate-400 text-slate-700 bg-white flex items-center justify-center transition-colors focus:outline-none shadow-2xs cursor-pointer"
               aria-label="Share"
+              title="Share"
             >
               <Share2 className="w-3.5 h-3.5" />
             </button>
@@ -704,6 +769,20 @@ export default function PlaylistDetailPage() {
                   className="w-full h-[36px] px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:bg-white focus:border-indigo-500 transition-all text-slate-800 font-semibold"
                   placeholder="e.g. My Favorites"
                 />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-450 uppercase mb-1">Tag Name</label>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-xs font-bold text-slate-400">#</span>
+                  <input
+                    type="text"
+                    value={editTagName}
+                    onChange={(e) => setEditTagName(e.target.value)}
+                    className="w-full h-[36px] pl-7 pr-3 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:bg-white focus:border-indigo-500 transition-all text-slate-800 font-semibold"
+                    placeholder="e.g. retro"
+                  />
+                </div>
               </div>
 
               <div>

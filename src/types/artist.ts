@@ -7,6 +7,7 @@ export interface Artist {
   genres: string[];
   rating?: number;
   votesCount?: number;
+  userRating?: number;
   bio?: string;
   listenersCount?: number;
 }

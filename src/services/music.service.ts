@@ -30,6 +30,14 @@ export class MusicService {
     return this.repository.getPlaylistById(id);
   }
 
+  async getPlaylistsByTag(tagName: string): Promise<Playlist[]> {
+    return this.repository.getPlaylistsByTag(tagName);
+  }
+
+  async votePlaylist(playlistId: string, rating: number): Promise<Playlist> {
+    return this.repository.votePlaylist(playlistId, rating);
+  }
+
   async getGenres(): Promise<Genre[]> {
     return this.repository.getGenres();
   }

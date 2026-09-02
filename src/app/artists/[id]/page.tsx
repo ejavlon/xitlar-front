@@ -54,6 +54,28 @@ export default function ArtistDetailPage() {
   const [commentAuthor, setCommentAuthor] = useState("Anonymous");
   const [commentText, setCommentText] = useState("");
 
+  const [hoveredStar, setHoveredStar] = useState<number | null>(null);
+  const [votingLoading, setVotingLoading] = useState(false);
+
+  const handleVote = async (rating: number) => {
+    if (!user) {
+      alert("Please sign in to vote for this artist.");
+      return;
+    }
+    if (!artist || votingLoading) return;
+    try {
+      setVotingLoading(true);
+      const updatedArtist = await artistService.voteArtist(artist.id, rating);
+      if (updatedArtist) {
+        setArtist(updatedArtist);
+      }
+    } catch (err) {
+      console.error("Failed to vote:", err);
+    } finally {
+      setVotingLoading(false);
+    }
+  };
+
   const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
@@ -219,6 +241,9 @@ export default function ArtistDetailPage() {
 
   const primaryGenre = artist.genres[0] || "Pop";
 
+  // Determine displayed rating for stars: use hovered value if hovering, else user's vote, else average
+  const displayedStarRating = hoveredStar ?? artist.userRating ?? 0;
+
   return (
     <div className="space-y-8 select-none pb-12">
       {/* Back button */}
@@ -261,24 +286,48 @@ export default function ArtistDetailPage() {
             </div>
           )}
 
-          {/* Star Rating */}
+          {/* Interactive Star Rating */}
           <div className="flex items-center justify-center sm:justify-start gap-1.5 pt-1 text-xs text-slate-500">
-            <div className="flex text-amber-400">
+            <div
+              className="flex"
+              onMouseLeave={() => setHoveredStar(null)}
+            >
               {[1, 2, 3, 4, 5].map((index) => {
-                const filled = (artist.rating ?? 4.7) >= index;
+                const filled = displayedStarRating >= index;
+                const isUserVoted = artist.userRating === index && !hoveredStar;
                 return (
-                  <Star
+                  <button
                     key={index}
+                    type="button"
+                    onClick={() => handleVote(index)}
+                    onMouseEnter={() => setHoveredStar(index)}
+                    disabled={votingLoading}
                     className={cn(
-                      "w-3.5 h-3.5",
-                      filled ? "fill-current" : "text-slate-200 fill-slate-200"
+                      "p-0.5 transition-all duration-150 focus:outline-none",
+                      votingLoading ? "cursor-wait" : "cursor-pointer hover:scale-125",
                     )}
-                  />
+                    aria-label={`Rate ${index} star${index > 1 ? "s" : ""}`}
+                  >
+                    <Star
+                      className={cn(
+                        "w-4 h-4 transition-colors",
+                        filled
+                          ? "text-amber-400 fill-amber-400"
+                          : "text-slate-200 fill-slate-200",
+                        isUserVoted && "ring-1 ring-amber-400 rounded-sm"
+                      )}
+                    />
+                  </button>
                 );
               })}
             </div>
-            <span className="font-bold text-slate-700">{(artist.rating ?? 4.7).toFixed(1)}</span>
-            <span className="text-slate-400 text-[11px]">(votes: {(artist.votesCount ?? 13221).toLocaleString()})</span>
+            <span className="font-bold text-slate-700">{(artist.rating ?? 0).toFixed(1)}</span>
+            <span className="text-slate-400 text-[11px]">(votes: {(artist.votesCount ?? 0).toLocaleString()})</span>
+            {artist.userRating && (
+              <span className="text-[10px] text-emerald-600 font-semibold ml-1">
+                ★ Your vote: {artist.userRating}
+              </span>
+            )}
           </div>
 
           {/* Action Buttons */}

@@ -22,6 +22,7 @@ export interface BackendArtistResponse {
   voteCount?: number;
   averageRating?: number;
   image?: BackendImageResponse;
+  userRating?: number;
 }
 
 export interface BackendAlbumResponse {
@@ -79,10 +80,14 @@ export interface BackendPlaylistMusicResponse {
 export interface BackendPlaylistResponse {
   id: number;
   title: string;
+  tagName?: string;
   description?: string;
   image?: BackendImageResponse;
   musics?: BackendPlaylistMusicResponse[];
   trackCount: number;
+  voteCount?: number;
+  averageRating?: number;
+  userRating?: number;
   createdAt: string;
   createdBy?: BackendUserResponse;
 }

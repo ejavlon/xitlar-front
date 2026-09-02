@@ -13,6 +13,8 @@ export interface MusicRepository {
   searchTracks(query: string): Promise<Track[]>;
   getPlaylists(): Promise<Playlist[]>;
   getPlaylistById(id: string): Promise<Playlist | null>;
+  getPlaylistsByTag(tagName: string): Promise<Playlist[]>;
+  votePlaylist(playlistId: string, rating: number): Promise<Playlist>;
   getGenres(): Promise<Genre[]>;
   getGenreBySlug(slug: string): Promise<Genre | null>;
   getTracksByGenre(genreSlug: string): Promise<Track[]>;
@@ -81,9 +83,14 @@ export function mapPlaylistToPlaylist(playlist: BackendPlaylistResponse): Playli
   return {
     id: String(playlist.id),
     title: playlist.title,
+    tagName: playlist.tagName || "playlists",
     description: playlist.description || "",
     coverUrl: playlist.image ? buildMediaUrl(playlist.image.url) : DEFAULT_PLAYLIST_COVER,
     trackCount: playlist.trackCount ?? (playlist.musics ? playlist.musics.length : 0),
+    voteCount: playlist.voteCount ?? 0,
+    averageRating: playlist.averageRating ?? 0.0,
+    userRating: playlist.userRating,
+    createdAt: playlist.createdAt,
     tracks: playlist.musics ? playlist.musics.map((pm: BackendPlaylistMusicResponse) => mapMusicToTrack(pm as any)) : [],
     isCollection: !playlist.createdBy,
     creator: playlist.createdBy ? `${playlist.createdBy.firstName || ""} ${playlist.createdBy.lastName || ""}`.trim() || playlist.createdBy.username : undefined
@@ -126,6 +133,27 @@ export class MockMusicRepository implements MusicRepository {
     await delay(150);
     const playlist = mockPlaylists.find((p) => p.id === id);
     return playlist || null;
+  }
+
+  async getPlaylistsByTag(tagName: string): Promise<Playlist[]> {
+    await delay(150);
+    const cleanTag = tagName.toLowerCase().trim().replace(/^#/, "");
+    return mockPlaylists.filter((p) => {
+      const tagMatches = (p.tagName || "playlists").toLowerCase() === cleanTag;
+      const titleMatches = p.title.toLowerCase().includes(cleanTag);
+      return tagMatches || titleMatches;
+    });
+  }
+
+  async votePlaylist(playlistId: string, rating: number): Promise<Playlist> {
+    await delay(150);
+    const playlist = mockPlaylists.find((p) => p.id === playlistId);
+    if (playlist) {
+      playlist.userRating = rating;
+      playlist.voteCount = (playlist.voteCount || 0) + 1;
+      playlist.averageRating = Math.round((((playlist.averageRating || 4.0) + rating) / 2) * 10) / 10;
+    }
+    return playlist || mockPlaylists[0];
   }
 
   async getGenres(): Promise<Genre[]> {
@@ -235,6 +263,23 @@ export class ApiMusicRepository implements MusicRepository {
       return null;
     }
     const data = await api.get<BackendPlaylistResponse>(`/api/v1/playlists/${id}`);
+    return mapPlaylistToPlaylist(data);
+  }
+
+  async getPlaylistsByTag(tagName: string): Promise<Playlist[]> {
+    const cleanTag = tagName.toLowerCase().trim().replace(/^#/, "");
+    try {
+      const response = await api.get<{ content: BackendPlaylistResponse[] }>(`/api/v1/playlists/tag/${encodeURIComponent(cleanTag)}?page=0&size=50`);
+      const content = response.content || [];
+      return content.map(mapPlaylistToPlaylist);
+    } catch (e) {
+      const allPlaylists = await this.getPlaylists();
+      return allPlaylists.filter((p) => (p.tagName || "playlists").toLowerCase() === cleanTag);
+    }
+  }
+
+  async votePlaylist(playlistId: string, rating: number): Promise<Playlist> {
+    const data = await api.post<BackendPlaylistResponse>(`/api/v1/playlists/${playlistId}/vote`, { rating });
     return mapPlaylistToPlaylist(data);
   }
 

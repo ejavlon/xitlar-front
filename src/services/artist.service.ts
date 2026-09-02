@@ -45,6 +45,10 @@ export class ArtistService {
   async getSimilarArtists(artistId: string): Promise<Artist[]> {
     return this.repository.getSimilarArtists(artistId);
   }
+
+  async voteArtist(artistId: string, rating: number): Promise<Artist | null> {
+    return this.repository.voteArtist(artistId, rating);
+  }
 }
 
 export const artistService = new ArtistService();

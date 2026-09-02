@@ -94,7 +94,7 @@ export default function HomePage() {
             Trending Hits
           </h2>
           <Link
-            href="/search"
+            href="/trending"
             className="text-xs text-slate-400 hover:text-[#365377] font-medium transition-colors"
           >
             View all
