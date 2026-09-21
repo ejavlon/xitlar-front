@@ -370,7 +370,7 @@ export default function AdminDashboard() {
         setTracksTotalPages(res.totalPages || 1);
       } else if (activeTab === "playlists") {
         const res = await api.get<PageableResponse<PlaylistResponse>>(
-          `/api/v1/playlists?page=${playlistsPage}&size=10&sortBy=id&sortDirection=desc`
+          `/api/v1/playlists?isCollection=true&page=${playlistsPage}&size=10&sortBy=id&sortDirection=desc`
         );
         setPlaylistsList(res.content || []);
         setPlaylistsTotalPages(res.totalPages || 1);
@@ -788,7 +788,8 @@ export default function AdminDashboard() {
       const formData = new FormData();
       const payload = {
         title: playlistTitle,
-        description: playlistDescription
+        description: playlistDescription,
+        isCollection: true
       };
       formData.append("data", new Blob([JSON.stringify(payload)], { type: "application/json" }));
       if (playlistFile) {

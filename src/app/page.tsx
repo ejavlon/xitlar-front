@@ -24,7 +24,7 @@ export default function HomePage() {
         const [tracksData, artistsData, playlistsData] = await Promise.all([
           musicService.getPopularTracks(),
           artistService.getArtists(),
-          musicService.getPlaylists()
+          musicService.getCollections()
         ]);
 
         setPopularTracks(tracksData.slice(0, 10));

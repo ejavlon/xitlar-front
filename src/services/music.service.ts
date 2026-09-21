@@ -26,6 +26,14 @@ export class MusicService {
     return this.repository.getPlaylists();
   }
 
+  async getUserPlaylists(): Promise<Playlist[]> {
+    return this.repository.getUserPlaylists();
+  }
+
+  async getCollections(): Promise<Playlist[]> {
+    return this.repository.getCollections();
+  }
+
   async getPlaylistById(id: string): Promise<Playlist | null> {
     return this.repository.getPlaylistById(id);
   }

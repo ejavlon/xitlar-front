@@ -12,6 +12,8 @@ export interface MusicRepository {
   getTrackById(id: string): Promise<Track | null>;
   searchTracks(query: string): Promise<Track[]>;
   getPlaylists(): Promise<Playlist[]>;
+  getUserPlaylists(): Promise<Playlist[]>;
+  getCollections(): Promise<Playlist[]>;
   getPlaylistById(id: string): Promise<Playlist | null>;
   getPlaylistsByTag(tagName: string): Promise<Playlist[]>;
   votePlaylist(playlistId: string, rating: number): Promise<Playlist>;
@@ -92,7 +94,7 @@ export function mapPlaylistToPlaylist(playlist: BackendPlaylistResponse): Playli
     userRating: playlist.userRating,
     createdAt: playlist.createdAt,
     tracks: playlist.musics ? playlist.musics.map((pm: BackendPlaylistMusicResponse) => mapMusicToTrack(pm as any)) : [],
-    isCollection: !playlist.createdBy,
+    isCollection: playlist.isCollection ?? false,
     creator: playlist.createdBy ? `${playlist.createdBy.firstName || ""} ${playlist.createdBy.lastName || ""}`.trim() || playlist.createdBy.username : undefined
   };
 }
@@ -127,6 +129,16 @@ export class MockMusicRepository implements MusicRepository {
   async getPlaylists(): Promise<Playlist[]> {
     await delay(150);
     return mockPlaylists;
+  }
+
+  async getUserPlaylists(): Promise<Playlist[]> {
+    await delay(150);
+    return mockPlaylists.filter((p) => !p.isCollection);
+  }
+
+  async getCollections(): Promise<Playlist[]> {
+    await delay(150);
+    return mockPlaylists.filter((p) => p.isCollection);
   }
 
   async getPlaylistById(id: string): Promise<Playlist | null> {
@@ -256,6 +268,28 @@ export class ApiMusicRepository implements MusicRepository {
     const response = await api.get<{ content: BackendPlaylistResponse[] }>("/api/v1/playlists?page=0&size=50");
     const content = response.content || [];
     return content.map(mapPlaylistToPlaylist);
+  }
+
+  async getUserPlaylists(): Promise<Playlist[]> {
+    try {
+      const response = await api.get<{ content: BackendPlaylistResponse[] }>("/api/v1/playlists/my?page=0&size=50");
+      const content = response.content || [];
+      return content.map(mapPlaylistToPlaylist);
+    } catch (e) {
+      console.error("Failed to fetch user playlists", e);
+      return [];
+    }
+  }
+
+  async getCollections(): Promise<Playlist[]> {
+    try {
+      const response = await api.get<{ content: BackendPlaylistResponse[] }>("/api/v1/playlists/collections?page=0&size=50");
+      const content = response.content || [];
+      return content.map(mapPlaylistToPlaylist);
+    } catch (e) {
+      console.error("Failed to fetch collections", e);
+      return [];
+    }
   }
 
   async getPlaylistById(id: string): Promise<Playlist | null> {

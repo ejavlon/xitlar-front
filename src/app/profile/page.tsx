@@ -81,17 +81,18 @@ export default function ProfilePage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [userData, trackData, artistData, playlistData, likedTracksData] = await Promise.all([
+        const [userData, trackData, artistData, userPlaylistsData, collectionsData, likedTracksData] = await Promise.all([
           userService.getCurrentUser(),
           musicService.getPopularTracks(),
           artistService.getArtists(),
-          musicService.getPlaylists(),
+          musicService.getUserPlaylists(),
+          musicService.getCollections(),
           musicService.getLikedTracks(),
         ]);
         setCurrentUser(userData);
         setTracks(trackData);
         setArtists(artistData);
-        setPlaylists(playlistData);
+        setPlaylists([...(userPlaylistsData || []), ...(collectionsData || [])]);
         setLikedTracks(likedTracksData);
       } catch (err) {
         console.error("Error loading profile data:", err);

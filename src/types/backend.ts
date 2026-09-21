@@ -90,6 +90,7 @@ export interface BackendPlaylistResponse {
   userRating?: number;
   createdAt: string;
   createdBy?: BackendUserResponse;
+  isCollection?: boolean;
 }
 
 export interface BackendPageableResponse<T> {
