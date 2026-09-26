@@ -7,7 +7,7 @@ import { formatDuration, formatReleaseDate, formatNumber } from "../../lib/forma
 import { cn } from "../../lib/utils";
 import { downloadTrack } from "../../lib/download";
 import { Play, Pause, Heart, Plus, Download, HeartCrack } from "lucide-react";
-import { useState, useEffect, memo } from "react";
+import { useState, useEffect, memo, useRef } from "react";
 import { AddToPlaylistPopover } from "../player/add-to-playlist-popover";
 import { musicService } from "../../services/music.service";
 
@@ -28,6 +28,8 @@ export const TrackRow = memo(function TrackRow({ track, playlistTracks, variant 
   const [likesCount, setLikesCount] = useState(track.likesCount || 0);
   const [isDisliked, setIsDisliked] = useState(track.isDisliked || false);
   const [dislikesCount, setDislikesCount] = useState(track.dislikesCount ?? 0);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setIsLiked(track.isLiked || false);
@@ -123,10 +125,16 @@ export const TrackRow = memo(function TrackRow({ track, playlistTracks, variant 
     }
   };
 
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToastMessage(null), 2000);
+  };
+
   const handleAddClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     usePlayerStore.getState().addToQueue(track);
-    alert(`Added "${track.title}" to queue`);
+    showToast(`"${track.title}" navbatga qo'shildi`);
   };
 
   const handleDownloadClick = (e: React.MouseEvent) => {
@@ -137,8 +145,14 @@ export const TrackRow = memo(function TrackRow({ track, playlistTracks, variant 
   return (
     <div
       onClick={handlePlayClick}
-      className="group flex items-center justify-between px-2.5 py-1.5 rounded-md transition-colors cursor-pointer select-none border-b border-slate-100 last:border-b-0 hover:bg-slate-50"
+      className="group relative flex items-center justify-between px-2.5 py-1.5 rounded-md transition-colors cursor-pointer select-none border-b border-slate-100 last:border-b-0 hover:bg-slate-50"
     >
+      {/* Inline toast notification */}
+      {toastMessage && (
+        <div className="absolute left-1/2 -translate-x-1/2 -top-8 z-50 bg-slate-800 text-white text-[11px] font-medium px-3 py-1 rounded-full shadow-lg whitespace-nowrap pointer-events-none animate-fade-in">
+          {toastMessage}
+        </div>
+      )}
       {/* Left side: Play button + Title/Artist */}
       <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
         {/* Circular Play / Pause Icon Button (32x32) */}

@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import { MobileNavigation } from "./mobile-navigation";
 import { MusicPlayer } from "../player/music-player";
 import { useMobile } from "../../hooks/use-mobile";
 import { useAuthStore } from "../../stores/auth-store";
+import { cn } from "../../lib/utils";
 import { X } from "lucide-react";
 
 interface AppShellProps {
@@ -17,10 +19,15 @@ export function AppShell({ children }: AppShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useMobile(1024);
   const initializeAuth = useAuthStore((s) => s.initialize);
+  const isInitialized = useAuthStore((s) => s.isInitialized);
+  const pathname = usePathname();
+  const isAdmin = pathname?.startsWith("/admin");
 
   useEffect(() => {
-    initializeAuth();
-  }, [initializeAuth]);
+    if (!isInitialized) {
+      initializeAuth();
+    }
+  }, [isInitialized, initializeAuth]);
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -28,8 +35,13 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="min-h-screen w-full bg-[#0c1522] flex justify-center text-slate-800 font-sans overflow-x-hidden">
-      {/* 1100px Unified Website Container */}
-      <div className="w-full max-w-[1100px] min-h-screen bg-white flex flex-col shadow-2xl relative">
+      {/* Website Container (Expanded to 1440px on admin panel for a spacious workspace) */}
+      <div
+        className={cn(
+          "w-full min-h-screen bg-white flex flex-col shadow-2xl relative transition-all duration-200",
+          isAdmin ? "max-w-[1440px]" : "max-w-[1100px]"
+        )}
+      >
         {/* 1. Header (Sticky / Top of Container) */}
         <Header onMenuToggle={toggleMobileMenu} />
 
@@ -41,9 +53,11 @@ export function AppShell({ children }: AppShellProps) {
           </main>
 
           {/* Right Column: Desktop Navigation Sidebar */}
-          <aside className="hidden lg:block w-[250px] shrink-0 p-4 border-l border-slate-100 bg-white">
-            <Sidebar />
-          </aside>
+          {!isAdmin && (
+            <aside className="hidden lg:block w-[250px] shrink-0 p-4 border-l border-slate-100 bg-white">
+              <Sidebar />
+            </aside>
+          )}
         </div>
 
         {/* 3. Mobile Slide-out Drawer */}

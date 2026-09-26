@@ -54,15 +54,15 @@ export function VolumePopover({ className, disabled = false }: VolumePopoverProp
 
   const getVolumeIcon = () => {
     if (disabled) {
-      return <Volume2 className="w-4.5 h-4.5 text-slate-300" />;
+      return <Volume2 className="w-[18px] h-[18px] text-slate-300" />;
     }
     if (isMuted || volume === 0) {
-      return <VolumeX className="w-4.5 h-4.5 text-slate-400" />;
+      return <VolumeX className="w-[18px] h-[18px] text-slate-400" />;
     }
     if (volume < 0.5) {
-      return <Volume1 className="w-4.5 h-4.5 text-slate-600" />;
+      return <Volume1 className="w-[18px] h-[18px] text-slate-600" />;
     }
-    return <Volume2 className="w-4.5 h-4.5 text-slate-600" />;
+    return <Volume2 className="w-[18px] h-[18px] text-slate-600" />;
   };
 
   return (
@@ -118,7 +118,7 @@ export function VolumePopover({ className, disabled = false }: VolumePopoverProp
         onClick={!disabled ? () => setIsOpen(!isOpen) : undefined}
         disabled={disabled}
         className={cn(
-          "p-1.5 rounded transition-colors focus:outline-none",
+          "w-7 h-7 flex items-center justify-center rounded transition-colors focus:outline-none shrink-0",
           disabled
             ? "cursor-not-allowed text-slate-300 opacity-60 pointer-events-none"
             : isOpen

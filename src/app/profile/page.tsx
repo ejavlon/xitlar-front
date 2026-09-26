@@ -35,9 +35,7 @@ const PROFILE_TABS: TabDef[] = [
   { key: "likes", label: "MY LIKES" },
   { key: "playlists", label: "PLAYLISTS" },
   { key: "collections", label: "COLLECTIONS" },
-  { key: "artists", label: "ARTISTS" },
-  { key: "clips", label: "CLIPS" },
-  { key: "updates", label: "UPDATES" },
+  { key: "artists", label: "ARTISTS" },    
   { key: "comments", label: "COMMENTS" },
 ];
 
@@ -166,17 +164,7 @@ export default function ProfilePage() {
                 <Link href="/profile?tab=updates" className="hover:text-[#365377] transition-colors">
                   News
                 </Link>
-              </div>
-              <div>
-                <Link href="#orders" className="hover:text-[#365377] transition-colors">
-                  Requests
-                </Link>
-              </div>
-              <div>
-                <Link href="/profile?tab=updates" className="hover:text-[#365377] transition-colors">
-                  Updates
-                </Link>
-              </div>
+              </div>          
             </div>
 
             {/* Column 2 */}
@@ -331,48 +319,7 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* TAB: UPDATES */}
-          {activeTab === "updates" && (
-            <div className="space-y-3">
-              {[
-                {
-                  id: "1",
-                  title: "Eminem released a new single",
-                  time: "2 hours ago",
-                  icon: Bell,
-                },
-                {
-                  id: "2",
-                  title: "Rayhon added 3 new tracks to 'Top Hits'",
-                  time: "Yesterday",
-                  icon: Bell,
-                },
-                {
-                  id: "3",
-                  title: "System update: New lossless HQ audio player enabled",
-                  time: "3 days ago",
-                  icon: Bell,
-                },
-              ].map((update) => (
-                <div
-                  key={update.id}
-                  className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200/80"
-                >
-                  <div className="w-8 h-8 rounded-full bg-blue-100 text-[#365377] flex items-center justify-center shrink-0">
-                    <update.icon className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-slate-800">
-                      {update.title}
-                    </p>
-                    <span className="text-[10px] text-slate-400">
-                      {update.time}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+
 
           {/* TAB: COMMENTS */}
           {activeTab === "comments" && (

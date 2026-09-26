@@ -1,19 +1,12 @@
 import {
-  Play,
-  Music,
+  Home,
+  Flame,
+  Disc3,
+  Library,
   Headphones,
   Mic2,
-  Video,
-  Phone,
-  Volume2,
-  CassetteTape,
-  Smile,
-  Baby,
-  Sun,
   Heart,
-  Zap,
-  Award,
-  SlidersHorizontal,
+  ListMusic,
   LucideIcon
 } from "lucide-react";
 
@@ -21,38 +14,107 @@ export interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
-  color: string; // Background color class for circle badge
+  badgeBg: string;
+  badgeText: string;
+  badgeTextHover?: string;
+  badgeBgHover?: string;
+  tag?: string;
+  requiresAuth?: boolean;
 }
 
-export const mainNavItems: NavItem[] = [
-  { label: "New Releases", href: "/new", icon: Play, color: "bg-[#5fc3f3] text-white" },
-  { label: "Collections", href: "/collections", icon: Music, color: "bg-[#ff6d8c] text-white" },
-  { label: "Genres", href: "/genres", icon: Headphones, color: "bg-[#fec33d] text-white" },
-  { label: "Artists", href: "/artists", icon: Mic2, color: "bg-[#ff9e42] text-white" },
-  { label: "Music Videos", href: "/videos", icon: Video, color: "bg-[#92cc77] text-white" },
-  { label: "Ringtones", href: "#ringtones", icon: Phone, color: "bg-[#82afc4] text-white" },
-  { label: "Popular", href: "/#popular", icon: Volume2, color: "bg-[#6bc0bf] text-white" },
-  { label: "Retro", href: "/genres/retro", icon: CassetteTape, color: "bg-[#ff7e7d] text-white" },
-  { label: "Moods", href: "/playlists/chill-vibe", icon: Smile, color: "bg-[#60a5fa] text-white" },
-  { label: "Kids", href: "/genres/pop", icon: Baby, color: "bg-[#6fcf97] text-white" },
-  { label: "Summer", href: "/playlists/top-rated", icon: Sun, color: "bg-[#7ecefd] text-white" },
-  { label: "Vibe", href: "/playlists/chill-vibe", icon: Heart, color: "bg-[#ff8e75] text-white" },
-  { label: "Chill", href: "/playlists/chill-vibe", icon: Zap, color: "bg-[#9b8df4] text-white" },
-  { label: "Top Rated", href: "/playlists/top-rated", icon: Award, color: "bg-[#88b3be] text-white" },
-  { label: "Custom Selection", href: "/collections", icon: SlidersHorizontal, color: "bg-[#db9f89] text-white" },
+export interface GenreTag {
+  label: string;
+  slug: string;
+}
+
+// 1. Primary discovery navigation
+export const discoverNavItems: NavItem[] = [
+  {
+    label: "Home",
+    href: "/",
+    icon: Home,
+    badgeBg: "bg-slate-100",
+    badgeText: "text-slate-600",
+    badgeBgHover: "group-hover:bg-slate-200",
+  },
+  {
+    label: "Trending Hits",
+    href: "/trending",
+    icon: Flame,
+    badgeBg: "bg-amber-50",
+    badgeText: "text-amber-500",
+    badgeBgHover: "group-hover:bg-amber-100",
+    tag: "HOT",
+  },
+  {
+    label: "New",
+    href: "/new",
+    icon: Disc3,
+    badgeBg: "bg-purple-50",
+    badgeText: "text-purple-600",
+    badgeBgHover: "group-hover:bg-purple-100",
+  },
+  {
+    label: "Collections",
+    href: "/collections",
+    icon: Library,
+    badgeBg: "bg-rose-50",
+    badgeText: "text-rose-500",
+    badgeBgHover: "group-hover:bg-rose-100",
+  },
+  {
+    label: "Genres",
+    href: "/genres",
+    icon: Headphones,
+    badgeBg: "bg-teal-50",
+    badgeText: "text-teal-600",
+    badgeBgHover: "group-hover:bg-teal-100",
+  },
+  {
+    label: "Artists",
+    href: "/artists",
+    icon: Mic2,
+    badgeBg: "bg-sky-50",
+    badgeText: "text-sky-600",
+    badgeBgHover: "group-hover:bg-sky-100",
+  },
 ];
 
-export const genreTags = [
-  { label: "pop", slug: "pop" },
-  { label: "club", slug: "club" },
-  { label: "chanson", slug: "chanson" },
-  { label: "rap", slug: "rap" },
-  { label: "rock", slug: "rock" },
-  { label: "trance", slug: "trance" },
-  { label: "dance", slug: "dance" },
-  { label: "relax", slug: "relax" },
-  { label: "dubstep", slug: "dubstep" },
-  { label: "house", slug: "house" },
-  { label: "metal", slug: "metal" },
-  { label: "more...", slug: "" },
+// 2. Personal library navigation
+export const libraryNavItems: NavItem[] = [
+  {
+    label: "Favorites",
+    href: "/profile?tab=likes",
+    icon: Heart,
+    badgeBg: "bg-rose-50",
+    badgeText: "text-rose-500",
+    badgeBgHover: "group-hover:bg-rose-100",
+    requiresAuth: true,
+  },
+  {
+    label: "My Playlists",
+    href: "/profile?tab=playlists",
+    icon: ListMusic,
+    badgeBg: "bg-indigo-50",
+    badgeText: "text-indigo-600",
+    badgeBgHover: "group-hover:bg-indigo-100",
+    requiresAuth: true,
+  },
 ];
+
+// 3. Clean, popular genre tags
+export const popularGenres: GenreTag[] = [
+  { label: "Pop", slug: "pop" },
+  { label: "Rap", slug: "rap" },
+  { label: "Rock", slug: "rock" },
+  { label: "Dance", slug: "dance" },
+  { label: "Club", slug: "club" },
+  { label: "House", slug: "house" },
+  { label: "Chanson", slug: "chanson" },
+  { label: "Trance", slug: "trance" },
+  { label: "Phonk", slug: "phonk" },
+  { label: "Chill", slug: "relax" },
+];
+
+export const mainNavItems = discoverNavItems;
+export const genreTags = popularGenres;

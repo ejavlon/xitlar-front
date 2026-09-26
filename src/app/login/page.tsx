@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../stores/auth-store";
@@ -19,6 +19,18 @@ export default function LoginPage() {
 
   const [errorMsg, setErrorMsg] = useState("");
 
+  useEffect(() => {
+    try {
+      const savedUser = localStorage.getItem("remembered_username");
+      const savedPass = localStorage.getItem("remembered_password");
+      if (savedUser) setEmail(savedUser);
+      if (savedPass) setPassword(savedPass);
+      if (savedUser || savedPass) setRememberMe(true);
+    } catch {
+      // ignore SSR or storage access errors
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
@@ -36,6 +48,18 @@ export default function LoginPage() {
 
       const resData = await response.json();
       if (response.ok && resData && resData.success && resData.data) {
+        try {
+          if (rememberMe) {
+            localStorage.setItem("remembered_username", email);
+            localStorage.setItem("remembered_password", password);
+          } else {
+            localStorage.removeItem("remembered_username");
+            localStorage.removeItem("remembered_password");
+          }
+        } catch {
+          // ignore
+        }
+
         await login(resData.data);
         router.push("/");
       } else {
@@ -47,13 +71,9 @@ export default function LoginPage() {
     }
   };
 
-  const handleOAuthLogin = (provider: "google" | "telegram") => {
-    if (provider === "google") {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-      window.location.href = `${baseUrl}/oauth2/authorization/google`;
-    } else {
-      alert("Telegram OAuth is not supported by the backend.");
-    }
+  const handleOAuthLogin = () => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+    window.location.href = `${baseUrl}/oauth2/authorization/google`;
   };
 
   return (
@@ -156,13 +176,13 @@ export default function LoginPage() {
         </div>
       </form>
 
-      {/* OAuth2 Social Login Buttons (Google, Telegram as requested) */}
+      {/* OAuth2 Social Login Button (Google) */}
       <div className="mt-6 pt-2">
         <div className="flex items-center gap-2.5">
           {/* Google Button */}
           <button
             type="button"
-            onClick={() => handleOAuthLogin("google")}
+            onClick={handleOAuthLogin}
             className="w-8 h-8 rounded-full bg-white border border-slate-200 shadow-xs hover:shadow-md hover:scale-105 transition-all flex items-center justify-center group focus:outline-none"
             title="Continue with Google"
             aria-label="Continue with Google"
@@ -184,19 +204,6 @@ export default function LoginPage() {
                 fill="#EA4335"
                 d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
               />
-            </svg>
-          </button>
-
-          {/* Telegram Button */}
-          <button
-            type="button"
-            onClick={() => handleOAuthLogin("telegram")}
-            className="w-8 h-8 rounded-full bg-[#24A1DE] hover:bg-[#1f8ec4] shadow-xs hover:shadow-md hover:scale-105 transition-all flex items-center justify-center text-white focus:outline-none"
-            title="Continue with Telegram"
-            aria-label="Continue with Telegram"
-          >
-            <svg className="w-3.5 h-3.5 fill-current mr-0.5" viewBox="0 0 24 24">
-              <path d="M20.665 3.717l-17.73 6.837c-1.21.486-1.203 1.161-.222 1.462l4.552 1.42 10.532-6.645c.498-.303.953-.14.579.192l-8.533 7.701h-.002l-.313 4.67c.457 0 .659-.208.914-.457l2.194-2.133 4.564 3.371c.841.464 1.447.225 1.657-.781l2.997-14.125c.307-1.23-.468-1.787-1.529-1.312z" />
             </svg>
           </button>
         </div>

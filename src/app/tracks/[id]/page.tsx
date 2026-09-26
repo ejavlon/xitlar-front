@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { Track } from "../../../types/track";
 import { musicService } from "../../../services/music.service";
 import { artistService } from "../../../services/artist.service";
@@ -16,10 +15,8 @@ import {
   Play,
   Pause,
   Download,
-  Plus,
   ArrowLeft,
   MessageSquare,
-  Send,
   Loader
 } from "lucide-react";
 import { cn } from "../../../lib/utils";
@@ -439,8 +436,7 @@ export default function TrackDetailPage() {
                   ? "bg-[#365377] hover:bg-[#2d4665] text-white cursor-pointer"
                   : "bg-slate-200 text-slate-400 cursor-not-allowed"
               )}
-            >
-              <Send className="w-3.5 h-3.5" />
+            >              
               <span>Send</span>
             </button>
           </div>

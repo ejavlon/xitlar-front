@@ -116,7 +116,7 @@ export function AudioQualityPopover({
         onClick={!disabled ? () => setIsOpen(!isOpen) : undefined}
         disabled={disabled}
         className={cn(
-          "w-7 h-6 flex items-center justify-center text-xs font-bold uppercase transition-colors focus:outline-none rounded",
+          "w-7 h-7 flex items-center justify-center text-xs font-bold uppercase transition-colors focus:outline-none rounded shrink-0",
           disabled
             ? "text-slate-300 pointer-events-none cursor-not-allowed"
             : isOpen

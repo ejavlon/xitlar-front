@@ -106,7 +106,7 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
             type="button"
             onClick={() => setIsLiked(!isLiked)}
             className={cn(
-              "p-1.5 rounded-full hover:bg-slate-100 transition-colors focus:outline-none",
+              "w-8 h-8 flex items-center justify-center shrink-0 rounded-full hover:bg-slate-100 transition-colors focus:outline-none",
               isLiked ? "text-red-500" : "text-slate-400 hover:text-slate-700"
             )}
             aria-label={isLiked ? "Unlike track" : "Like track"}
@@ -117,20 +117,20 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
           <button
             type="button"
             onClick={togglePlay}
-            className="w-8 h-8 rounded-full bg-[#365377] text-white flex items-center justify-center shadow-xs focus:outline-none"
+            className="w-8 h-8 flex items-center justify-center shrink-0 rounded-full bg-[#365377] text-white shadow-xs focus:outline-none"
             aria-label={isPlaying ? "Pause" : "Play"}
           >
             {isPlaying ? (
               <Pause className="w-4 h-4 fill-current" />
             ) : (
-              <Play className="w-4 h-4 fill-current ml-0.5" />
+              <Play className="w-4 h-4 fill-current" />
             )}
           </button>
 
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="p-1.5 text-slate-400 hover:text-slate-700 focus:outline-none"
+            className="w-8 h-8 flex items-center justify-center shrink-0 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 focus:outline-none"
             aria-label="Expand player"
           >
             <Maximize2 className="w-4 h-4" />
@@ -225,12 +225,12 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
           </div>
 
           {/* Playback Controls */}
-          <div className="flex items-center justify-between gap-4 mb-6">
+          <div className="flex items-center justify-between gap-3 mb-6">
             <button
               type="button"
               onClick={toggleShuffle}
               className={cn(
-                "p-3 text-slate-400 hover:text-slate-800 focus:outline-none",
+                "w-11 h-11 flex items-center justify-center shrink-0 rounded-full text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors focus:outline-none",
                 isShuffled && "text-amber-500 font-bold"
               )}
               aria-label="Shuffle"
@@ -241,7 +241,7 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
             <button
               type="button"
               onClick={previous}
-              className="p-3 text-slate-600 hover:text-slate-900 focus:outline-none"
+              className="w-11 h-11 flex items-center justify-center shrink-0 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors focus:outline-none"
               aria-label="Previous track"
             >
               <SkipBack className="w-6 h-6 fill-current" />
@@ -250,20 +250,20 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
             <button
               type="button"
               onClick={togglePlay}
-              className="w-14 h-14 rounded-full bg-[#365377] text-white flex items-center justify-center shadow-md hover:scale-105 transition-transform focus:outline-none"
+              className="w-14 h-14 rounded-full bg-[#365377] text-white flex items-center justify-center shrink-0 shadow-md hover:scale-105 transition-transform focus:outline-none"
               aria-label={isPlaying ? "Pause" : "Play"}
             >
               {isPlaying ? (
                 <Pause className="w-6 h-6 fill-current" />
               ) : (
-                <Play className="w-6 h-6 fill-current ml-0.5" />
+                <Play className="w-6 h-6 fill-current" />
               )}
             </button>
 
             <button
               type="button"
               onClick={next}
-              className="p-3 text-slate-600 hover:text-slate-900 focus:outline-none"
+              className="w-11 h-11 flex items-center justify-center shrink-0 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors focus:outline-none"
               aria-label="Next track"
             >
               <SkipForward className="w-6 h-6 fill-current" />
@@ -273,14 +273,14 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
               type="button"
               onClick={toggleRepeat}
               className={cn(
-                "p-3 text-slate-400 hover:text-slate-800 focus:outline-none relative",
+                "w-11 h-11 flex items-center justify-center shrink-0 rounded-full text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors focus:outline-none relative",
                 repeatMode !== "off" && "text-amber-500 font-bold"
               )}
               aria-label={`Repeat: ${repeatMode}`}
             >
               <Repeat className="w-5 h-5" />
               {repeatMode === "one" && (
-                <span className="absolute top-2 right-2 bg-amber-500 text-[8px] font-bold text-white px-1 rounded-full">
+                <span className="absolute top-1 right-1 bg-amber-500 text-[8px] font-bold text-white px-1 rounded-full pointer-events-none">
                   1
                 </span>
               )}

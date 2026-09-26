@@ -1,7 +1,5 @@
 import { Artist } from "../types/artist";
 import { Track } from "../types/track";
-import { mockArtists } from "../mock/artists";
-import { mockTracks } from "../mock/tracks";
 import { api, buildMediaUrl, DEFAULT_AVATAR } from "../lib/api/client";
 import { mapMusicToTrack } from "./music.repository";
 import { BackendArtistResponse } from "../types/backend";
@@ -27,59 +25,6 @@ export function mapArtistToArtist(artist: BackendArtistResponse): Artist {
     userRating: artist.userRating,
     listenersCount: undefined
   };
-}
-
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-export class MockArtistRepository implements ArtistRepository {
-  async getArtists(): Promise<Artist[]> {
-    await delay(150);
-    return mockArtists;
-  }
-
-  async getArtistById(id: string): Promise<Artist | null> {
-    await delay(100);
-    const artist = mockArtists.find((a) => a.id === id);
-    return artist || null;
-  }
-
-  async getTracksByArtist(artistId: string): Promise<Track[]> {
-    await delay(150);
-    return mockTracks.filter((t) => t.artist.id === artistId);
-  }
-
-  async searchArtists(query: string): Promise<Artist[]> {
-    await delay(150);
-    const q = query.toLowerCase().trim();
-    if (!q) return [];
-    return mockArtists.filter(
-      (a) =>
-        a.name.toLowerCase().includes(q) ||
-        a.genres.some((g) => g.toLowerCase().includes(q))
-    );
-  }
-
-  async getSimilarArtists(artistId: string): Promise<Artist[]> {
-    await delay(150);
-    const current = mockArtists.find((a) => a.id === artistId);
-    if (!current) return mockArtists.slice(0, 6);
-
-    const sameGenre = mockArtists.filter(
-      (a) => a.id !== artistId && a.genres.some((g) => current.genres.includes(g))
-    );
-
-    if (sameGenre.length >= 6) {
-      return sameGenre.slice(0, 6);
-    }
-
-    const others = mockArtists.filter((a) => a.id !== artistId && !sameGenre.includes(a));
-    return [...sameGenre, ...others].slice(0, 6);
-  }
-
-  async voteArtist(_artistId: string, _rating: number): Promise<Artist | null> {
-    // Mock implementation - no-op
-    return null;
-  }
 }
 
 export class ApiArtistRepository implements ArtistRepository {

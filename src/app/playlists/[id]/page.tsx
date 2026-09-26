@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Playlist } from "../../../types/playlist";
 import { musicService } from "../../../services/music.service";
@@ -288,23 +288,29 @@ export default function PlaylistDetailPage() {
     );
   }
 
-  // Sorted tracks according to active tab
-  const rawTracks = playlist.tracks || [];
-  const sortedTracks = [...rawTracks];
-  if (activeTab === "popular") {
-    sortedTracks.sort((a, b) => b.likesCount - a.likesCount);
-  } else if (activeTab === "alphabetical") {
-    sortedTracks.sort((a, b) => a.title.localeCompare(b.title));
-  } else {
-    // by date
-    sortedTracks.sort((a, b) => {
-      const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
-      const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
-      return dateB - dateA;
-    });
-  }
+  // Sorted tracks according to active tab (memoized)
+  const rawTracks = useMemo(() => playlist?.tracks || [], [playlist?.tracks]);
 
-  const totalDuration = rawTracks.reduce((acc, t) => acc + (t.duration || 0), 0);
+  const sortedTracks = useMemo(() => {
+    const list = [...rawTracks];
+    if (activeTab === "popular") {
+      list.sort((a, b) => b.likesCount - a.likesCount);
+    } else if (activeTab === "alphabetical") {
+      list.sort((a, b) => a.title.localeCompare(b.title));
+    } else {
+      // by date
+      list.sort((a, b) => {
+        const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
+        const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
+        return dateB - dateA;
+      });
+    }
+    return list;
+  }, [rawTracks, activeTab]);
+
+  const totalDuration = useMemo(() => {
+    return rawTracks.reduce((acc, t) => acc + (t.duration || 0), 0);
+  }, [rawTracks]);
 
   return (
     <div className="space-y-7 select-none animate-fade-in font-sans">

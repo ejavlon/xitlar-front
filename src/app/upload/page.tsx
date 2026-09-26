@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../stores/auth-store";
 import { api, ApiError } from "../../lib/api/client";
+import { parseAudioFilename, cleanTitleString } from "../../lib/filename-parser";
 import {
   UploadCloud,
   Music,
@@ -12,9 +13,12 @@ import {
   CheckCircle,
   AlertTriangle,
   XCircle,
-  X,
   Lock,
-  ShieldAlert
+  ShieldAlert,
+  Wand2,
+  Users,
+  Check,
+  Plus
 } from "lucide-react";
 
 interface UploadResult {
@@ -22,7 +26,23 @@ interface UploadResult {
   status: "SUCCESS" | "DUPLICATE" | "FAILED";
   musicId?: number;
   title?: string;
+  artistName?: string;
   error?: string;
+}
+
+interface BulkTrackItem {
+  id: string;
+  file: File;
+  fileName: string;
+  title: string;
+  artistName: string;
+  artistId: number | null;
+  size: number;
+}
+
+interface ExistingArtist {
+  id: number;
+  name: string;
 }
 
 export default function UploadPage() {
@@ -30,16 +50,30 @@ export default function UploadPage() {
   const { isAuthenticated, user, isInitialized } = useAuthStore();
 
   const [mounted, setMounted] = useState(false);
+  const [existingArtists, setExistingArtists] = useState<ExistingArtist[]>([]);
+
   useEffect(() => {
     setMounted(true);
-  }, []);
+    if (isAuthenticated) {
+      api.get<any>("/api/v1/artists?page=0&size=100")
+        .then((res) => {
+          if (res?.content && Array.isArray(res.content)) {
+            setExistingArtists(res.content.map((a: any) => ({ id: a.id, name: a.name })));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isAuthenticated]);
 
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [queueItems, setQueueItems] = useState<BulkTrackItem[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [permissionDenied, setPermissionDenied] = useState(false);
+
+  // Batch helper state
+  const [batchArtistInput, setBatchArtistInput] = useState("");
 
   // Stats
   const [totalFiles, setTotalFiles] = useState(0);
@@ -57,7 +91,7 @@ export default function UploadPage() {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-2 font-sans select-none">
         <Loader2 className="w-6 h-6 text-[#365377] animate-spin" />
-        <p className="text-xs text-slate-400 font-medium">Loading...</p>
+        <p className="text-xs text-slate-400 font-medium">Yuklanmoqda...</p>
       </div>
     );
   }
@@ -68,15 +102,15 @@ export default function UploadPage() {
         <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-5 shadow-2xs border border-slate-200">
           <Lock className="w-6 h-6 text-slate-400" />
         </div>
-        <h1 className="text-xl font-bold text-slate-850 mb-2">Sign In Required</h1>
+        <h1 className="text-xl font-bold text-slate-850 mb-2">Tizimga kirish talab qilinadi</h1>
         <p className="text-xs text-slate-500 max-w-[360px] mb-6 leading-relaxed">
-          You must be signed in as an Admin or Moderator to upload tracks to Xitlar.
+          Musiqa yuklash uchun Admin yoki Moderator hisobi bilan tizimga kiring.
         </p>
         <button
           onClick={() => router.push("/login")}
           className="h-[36px] px-6 rounded-full bg-[#365377] hover:bg-[#284160] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer focus:outline-none"
         >
-          Sign In
+          Kirish
         </button>
       </div>
     );
@@ -88,19 +122,19 @@ export default function UploadPage() {
         <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-5 shadow-2xs border border-red-100">
           <ShieldAlert className="w-6 h-6 text-red-500" />
         </div>
-        <h1 className="text-xl font-bold text-slate-900 mb-2">Access Denied</h1>
+        <h1 className="text-xl font-bold text-slate-900 mb-2">Ruxsat cheklangan</h1>
         <p className="text-xs text-red-500 max-w-[420px] mb-6 leading-relaxed">
-          Only administrators and moderators are authorized to upload tracks. Please sign in with an authorized account or contact support.
+          Faqat administrator va moderatorlar trek yuklash huquqiga ega.
         </p>
         <button
           onClick={() => {
             setPermissionDenied(false);
             setErrorMessage("");
-            setSelectedFiles([]);
+            setQueueItems([]);
           }}
           className="h-[36px] px-6 rounded-full border border-slate-300 hover:border-slate-400 text-slate-800 text-xs font-semibold shadow-2xs transition-colors cursor-pointer focus:outline-none bg-white"
         >
-          Go Back
+          Ortga qaytish
         </button>
       </div>
     );
@@ -113,42 +147,57 @@ export default function UploadPage() {
     setSuccessMsg("");
     setResults([]);
 
-    const newFiles: File[] = [];
-    let overLimit = false;
-    let badFormat = false;
-    let sizeExceeded = false;
-
-    // Check count validation
-    if (selectedFiles.length + files.length > 50) {
-      setErrorMessage("Maximum 50 files can be uploaded at a time.");
+    if (queueItems.length + files.length > 50) {
+      setErrorMessage("Bir vaqtning o'zida ko'pi bilan 50 ta fayl yuklash mumkin.");
       return;
     }
+
+    const newItems: BulkTrackItem[] = [];
+    let badFormat = false;
+    let sizeExceeded = false;
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
 
-      // Validate format
       if (!file.name.toLowerCase().endsWith(".mp3") && file.type !== "audio/mpeg" && file.type !== "audio/mp3") {
         badFormat = true;
         continue;
       }
 
-      // Validate individual size (50MB)
       if (file.size > 50 * 1024 * 1024) {
         sizeExceeded = true;
         continue;
       }
 
-      newFiles.push(file);
+      const parsed = parseAudioFilename(file.name);
+      let matchedArtistId: number | null = null;
+      if (parsed.artist) {
+        const found = existingArtists.find(
+          (a) => a.name.toLowerCase() === parsed.artist.toLowerCase()
+        );
+        if (found) {
+          matchedArtistId = found.id;
+        }
+      }
+
+      newItems.push({
+        id: `${file.name}-${Date.now()}-${Math.random()}`,
+        file,
+        fileName: file.name,
+        title: parsed.title,
+        artistName: parsed.artist,
+        artistId: matchedArtistId,
+        size: file.size
+      });
     }
 
     if (badFormat) {
-      setErrorMessage("Only MP3 audio files are allowed.");
+      setErrorMessage("Faqat MP3 formatidagi audio fayllar qo'llab-quvvatlanadi.");
     } else if (sizeExceeded) {
-      setErrorMessage("Individual file size limit is 50MB.");
+      setErrorMessage("Har bir fayl hajmi 50MB dan oshmasligi lozim.");
     }
 
-    setSelectedFiles((prev) => [...prev, ...newFiles]);
+    setQueueItems((prev) => [...prev, ...newItems]);
   };
 
   // Drag and drop handlers
@@ -171,27 +220,71 @@ export default function UploadPage() {
     }
   };
 
-  const removeFile = (index: number) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  const updateItemTitle = (index: number, newTitle: string) => {
+    setQueueItems((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], title: newTitle };
+      return copy;
+    });
+  };
+
+  const updateItemArtist = (index: number, newArtist: string) => {
+    setQueueItems((prev) => {
+      const copy = [...prev];
+      const found = existingArtists.find(
+        (a) => a.name.toLowerCase() === newArtist.trim().toLowerCase()
+      );
+      copy[index] = {
+        ...copy[index],
+        artistName: newArtist,
+        artistId: found ? found.id : null
+      };
+      return copy;
+    });
+  };
+
+  const removeItem = (index: number) => {
+    setQueueItems((prev) => prev.filter((_, i) => i !== index));
   };
 
   const clearAll = () => {
-    setSelectedFiles([]);
+    setQueueItems([]);
     setErrorMessage("");
     setSuccessMsg("");
     setResults([]);
   };
 
-  // Trigger file browser click
-  const onButtonClick = () => {
-    fileInputRef.current?.click();
+  // Apply batch artist to all selected tracks
+  const applyBatchArtist = () => {
+    if (!batchArtistInput.trim()) return;
+    const trimmed = batchArtistInput.trim();
+    const found = existingArtists.find(
+      (a) => a.name.toLowerCase() === trimmed.toLowerCase()
+    );
+    setQueueItems((prev) =>
+      prev.map((item) => ({
+        ...item,
+        artistName: trimmed,
+        artistId: found ? found.id : null
+      }))
+    );
+  };
+
+  // Clean ads, telegram links, numbering from all titles
+  const cleanAllTitles = () => {
+    setQueueItems((prev) =>
+      prev.map((item) => ({
+        ...item,
+        title: cleanTitleString(item.title) || item.title
+      }))
+    );
   };
 
   // Execute bulk upload
   const handleUploadSubmit = async () => {
-    if (selectedFiles.length === 0) return;
-    if (selectedFiles.length > 50) {
-      setErrorMessage("You can only upload up to 50 files.");
+    if (queueItems.length === 0) return;
+    if (queueItems.length > 50) {
+      setErrorMessage("Bir vaqtda 50 tadan ortiq fayl yuklab bo'lmaydi.");
       return;
     }
 
@@ -201,30 +294,42 @@ export default function UploadPage() {
     setResults([]);
 
     const formData = new FormData();
-    selectedFiles.forEach((file) => {
-      formData.append("files", file);
+    queueItems.forEach((item) => {
+      formData.append("files", item.file);
     });
+
+    const metadata = queueItems.map((item) => ({
+      fileName: item.fileName,
+      title: item.title.trim() || item.fileName.replace(/\.[^/.]+$/, ""),
+      artistName: item.artistName.trim() || null,
+      artistId: item.artistId || null
+    }));
+
+    formData.append(
+      "metadata",
+      new Blob([JSON.stringify(metadata)], { type: "application/json" })
+    );
 
     try {
       const data = await api.post<any>("/api/v1/musics/bulk", formData, {
-        timeout: 300000, // 5 minutes upload timeout
+        timeout: 300000 // 5 minutes upload timeout
       });
 
       if (data) {
-        setTotalFiles(data.total || selectedFiles.length);
+        setTotalFiles(data.total || queueItems.length);
         setSuccessCount(data.successCount || 0);
         setDuplicateCount(data.duplicateCount || 0);
         setFailedCount(data.failedCount || 0);
         setResults(data.results || []);
 
         if ((data.successCount || 0) > 0) {
-          setSuccessMsg(`Successfully processed ${data.successCount} tracks!`);
-          setSelectedFiles([]);
+          setSuccessMsg(`${data.successCount} ta musiqa muvaffaqiyatli yuklandi va tizimga qo'shildi!`);
+          setQueueItems([]);
         } else if ((data.duplicateCount || 0) > 0) {
-          setSuccessMsg("Processing finished. All tracks were duplicates.");
-          setSelectedFiles([]);
+          setSuccessMsg("Jarayon yakunlandi. Barcha treklar allaqachon mavjud (takroriy).");
+          setQueueItems([]);
         } else {
-          setErrorMessage("Failed to upload tracks. Please check the error details below.");
+          setErrorMessage("Musiqalarni yuklashda xatolik yuz berdi. Tafsilotlarni quyida tekshiring.");
         }
       }
     } catch (err: any) {
@@ -233,12 +338,12 @@ export default function UploadPage() {
         if (err.status === 403) {
           setPermissionDenied(true);
         } else if (err.status === 401) {
-          setErrorMessage("Session expired. Please log in again.");
+          setErrorMessage("Sessiya muddati tugadi. Iltimos, qayta kiring.");
         } else {
-          setErrorMessage(err.message || "Bulk upload failed.");
+          setErrorMessage(err.message || "Bulk upload jarayonida xatolik yuz berdi.");
         }
       } else {
-        setErrorMessage("Network error or connection refused from backend.");
+        setErrorMessage("Server bilan aloqa uzildi yoki tarmoq xatosi.");
       }
     } finally {
       setUploading(false);
@@ -254,29 +359,36 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="space-y-6 font-sans select-none animate-fade-in p-4 max-w-[800px] mx-auto">
-      {/* Title */}
+    <div className="space-y-6 font-sans select-none animate-fade-in p-4 max-w-[960px] mx-auto">
+      {/* Existing Artists Datalist */}
+      <datalist id="existing-artists-list">
+        {existingArtists.map((a) => (
+          <option key={a.id} value={a.name} />
+        ))}
+      </datalist>
+
+      {/* Header */}
       <div>
         <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
           <UploadCloud className="w-6 h-6 text-[#365377]" />
-          Bulk Music Upload
+          Smart Bulk Music Upload
         </h1>
-        <p className="text-xs text-slate-400 mt-1">
-          Upload up to 50 MP3 tracks at once. Duplicate tracks are automatically detected.
+        <p className="text-xs text-slate-500 mt-1">
+          Har xil san'atkorlarning musiqalarini bir vaqtning o'zida yuklang. Nomi va ijrochilari avtomatik aniqlanadi, topilmagan san'atkorlar avtomatik yaratiladi.
         </p>
       </div>
 
-      {/* Main Drag-Drop Box */}
+      {/* Drag & Drop Area */}
       {!uploading && results.length === 0 && (
         <div
           onDragEnter={handleDrag}
           onDragOver={handleDrag}
           onDragLeave={handleDrag}
           onDrop={handleDrop}
-          className={`w-full py-12 px-6 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center transition-all ${
+          className={`w-full py-10 px-6 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center transition-all ${
             isDragActive
-              ? "border-amber-500 bg-amber-50/50"
-              : "border-slate-200 bg-slate-50 hover:bg-slate-100/50"
+              ? "border-[#365377] bg-blue-50/50"
+              : "border-slate-200 bg-slate-50 hover:bg-slate-100/60"
           }`}
         >
           <input
@@ -288,33 +400,36 @@ export default function UploadPage() {
             className="hidden"
           />
 
-          <UploadCloud className="w-12 h-12 text-slate-400 mb-4 animate-bounce" />
-          <p className="text-sm font-semibold text-slate-800 mb-1.5 text-center">
-            Drag and drop your audio files here
+          <div className="w-12 h-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-3">
+            <UploadCloud className="w-6 h-6 text-[#365377]" />
+          </div>
+          <p className="text-sm font-bold text-slate-800 mb-1 text-center">
+            MP3 fayllarni shu yerga tashlang yoki tanlang
           </p>
-          <p className="text-xs text-slate-600 mb-4 text-center">
-            Only .mp3 files up to 50MB each are supported
+          <p className="text-xs text-slate-500 mb-4 text-center">
+            Maksimum 50 ta fayl, har biri 50MB gacha
           </p>
           <button
             type="button"
-            onClick={onButtonClick}
-            className="h-[32px] px-5 rounded-full border border-slate-300 bg-white hover:border-[#365377] hover:text-[#365377] text-slate-800 text-xs font-semibold shadow-2xs transition-all cursor-pointer focus:outline-none"
+            onClick={() => fileInputRef.current?.click()}
+            className="h-[34px] px-5 rounded-full border border-slate-300 bg-white hover:border-[#365377] hover:text-[#365377] text-slate-800 text-xs font-bold shadow-2xs transition-all cursor-pointer focus:outline-none flex items-center gap-1.5"
           >
-            Browse Files
+            <Plus className="w-3.5 h-3.5" />
+            Fayllarni tanlash
           </button>
         </div>
       )}
 
-      {/* Errors and Warnings */}
+      {/* Error & Success Messages */}
       {errorMessage && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-red-50 text-red-500 border border-red-100 rounded-xl text-xs font-medium">
+        <div className="flex items-center gap-2 px-4 py-3 bg-red-50 text-red-600 border border-red-100 rounded-xl text-xs font-medium animate-fade-in">
           <XCircle className="w-4 h-4 shrink-0" />
           <span>{errorMessage}</span>
         </div>
       )}
 
       {successMsg && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 text-emerald-500 border border-emerald-100 rounded-xl text-xs font-medium">
+        <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl text-xs font-medium animate-fade-in">
           <CheckCircle className="w-4 h-4 shrink-0" />
           <span>{successMsg}</span>
         </div>
@@ -326,115 +441,214 @@ export default function UploadPage() {
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-800 flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin text-[#365377]" />
-              Uploading {selectedFiles.length} files...
+              {queueItems.length} ta musiqa serverga yuklanmoqda...
             </span>
-            <span className="text-xs font-bold text-slate-600 animate-pulse">
-              Sending to server
+            <span className="text-xs font-bold text-slate-500 animate-pulse">
+              Fayllar tahlil qilinmoqda...
             </span>
           </div>
           <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
             <div className="bg-[#365377] h-full animate-infinite-progress rounded-full w-2/3" />
           </div>
-          <p className="text-[11px] text-slate-650 leading-relaxed">
-            Please keep this page open. Processing audio metadata, validating checksum hashes, and writing files may take up to a few minutes depending on network bandwidth and queue size.
+          <p className="text-[11px] text-slate-500 leading-relaxed">
+            Iltimos, sahifani yopmang. Audio metadatalari o'qilmoqda, san'atkorlar bog'lanmoqda va ID3 taglar tozalangan holda saqlanmoqda.
           </p>
         </div>
       )}
 
-      {/* Selected Files Queue list */}
-      {!uploading && selectedFiles.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-bold text-slate-850">
-              Queue ({selectedFiles.length} / 50)
-            </span>
-            <button
-              onClick={clearAll}
-              className="text-xs text-red-500 hover:text-red-700 hover:underline font-semibold focus:outline-none"
-            >
-              Clear All
-            </button>
+      {/* Interactive Pre-Upload Review Table */}
+      {!uploading && queueItems.length > 0 && (
+        <div className="space-y-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs">
+          {/* Top Batch Tools Bar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-extrabold text-slate-800">
+                Yuklash navbati ({queueItems.length} ta trek)
+              </span>
+              <span className="text-[10px] bg-blue-50 text-[#365377] font-bold px-2 py-0.5 rounded-full border border-blue-100">
+                Har bir qator mustaqil
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Clean titles button */}
+              <button
+                type="button"
+                onClick={cleanAllTitles}
+                title="Nomlardagi reklama va prefikslarni bir klikda tozalash"
+                className="h-[30px] px-3 rounded-lg border border-slate-200 hover:border-indigo-400 bg-slate-50 hover:bg-indigo-50/50 text-slate-700 hover:text-indigo-600 text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Wand2 className="w-3.5 h-3.5 text-indigo-500" />
+                Nomlarni tozalash
+              </button>
+
+              {/* Clear all */}
+              <button
+                type="button"
+                onClick={clearAll}
+                className="h-[30px] px-3 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 text-[11px] font-bold transition-all cursor-pointer"
+              >
+                Barchasini bekor qilish
+              </button>
+            </div>
           </div>
 
-          <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-2xl bg-white shadow-2xs overflow-hidden">
-            {selectedFiles.map((file, idx) => (
-              <div
-                key={`${file.name}-${idx}`}
-                className="flex items-center justify-between p-3.5 hover:bg-slate-50 transition-colors group"
+          {/* Batch Artist Helper (Optional) */}
+          <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <Users className="w-4 h-4 text-slate-400 shrink-0" />
+              <div className="text-xs font-semibold text-slate-700 truncate">
+                Barcha qatorlarga bitta san'atkor qo'yish (ixtiyoriy albom amali):
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <input
+                type="text"
+                list="existing-artists-list"
+                value={batchArtistInput}
+                onChange={(e) => setBatchArtistInput(e.target.value)}
+                placeholder="Xonanda nomi..."
+                className="h-[30px] w-[180px] sm:w-[220px] px-2.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-[#365377]"
+              />
+              <button
+                type="button"
+                onClick={applyBatchArtist}
+                className="h-[30px] px-3 bg-[#365377] hover:bg-[#284160] text-white text-[11px] font-bold rounded-lg shadow-2xs transition-colors flex items-center gap-1 cursor-pointer"
               >
-                <div className="flex items-center gap-2.5 min-w-0 pr-4">
-                  <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
-                    <Music className="w-3.5 h-3.5 text-amber-500" />
+                <Check className="w-3 h-3" />
+                Qo'llash
+              </button>
+            </div>
+          </div>
+
+          {/* Queue Items Table */}
+          <div className="max-h-[460px] overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-xl bg-white overflow-hidden">
+            {queueItems.map((item, idx) => (
+              <div
+                key={item.id}
+                className="p-3 hover:bg-slate-50/70 transition-colors flex flex-col sm:flex-row sm:items-center gap-3"
+              >
+                {/* File info pill */}
+                <div className="flex items-center gap-2 min-w-[180px] sm:max-w-[220px] shrink-0">
+                  <span className="w-5 text-[11px] font-mono text-slate-400 font-bold text-center">
+                    {idx + 1}.
+                  </span>
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                    <Music className="w-3.5 h-3.5 text-[#365377]" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-slate-800 truncate" title={file.name}>
-                      {file.name}
+                    <div className="text-xs font-medium text-slate-700 truncate" title={item.fileName}>
+                      {item.fileName}
                     </div>
-                    <div className="text-[11px] text-slate-400 font-mono mt-0.5">
-                      {formatSize(file.size)}
+                    <div className="text-[10px] text-slate-400 font-mono">
+                      {formatSize(item.size)}
                     </div>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => removeFile(idx)}
-                  className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                  aria-label="Remove file"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+
+                {/* Title Input */}
+                <div className="flex-1 min-w-0">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Qo'shiq nomi
+                  </label>
+                  <input
+                    type="text"
+                    value={item.title}
+                    onChange={(e) => updateItemTitle(idx, e.target.value)}
+                    placeholder="Qo'shiq nomi..."
+                    className="w-full h-[32px] px-2.5 text-xs bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 focus:border-[#365377] rounded-lg transition-colors focus:outline-none font-medium text-slate-800"
+                  />
+                </div>
+
+                {/* Artist Input (with autocomplete & custom typing) */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Ijrochi / Artist
+                    </label>
+                    {item.artistId ? (
+                      <span className="text-[10px] text-emerald-600 font-bold">Mavjud san'atkor</span>
+                    ) : item.artistName.trim() ? (
+                      <span className="text-[10px] text-blue-600 font-bold">+ Yangi yaratiladi</span>
+                    ) : (
+                      <span className="text-[10px] text-amber-500 font-medium">Tagdan o'qiladi</span>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    list="existing-artists-list"
+                    value={item.artistName}
+                    onChange={(e) => updateItemArtist(idx, e.target.value)}
+                    placeholder="Ijrochini kiriting yoki tanlang..."
+                    className="w-full h-[32px] px-2.5 text-xs bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 focus:border-[#365377] rounded-lg transition-colors focus:outline-none font-medium text-slate-800"
+                  />
+                </div>
+
+                {/* Remove track button */}
+                <div className="shrink-0 self-end sm:self-center">
+                  <button
+                    type="button"
+                    onClick={() => removeItem(idx)}
+                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    title="O'chirish"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
 
+          {/* Submit Button */}
           <div className="pt-2">
             <button
               onClick={handleUploadSubmit}
-              className="w-full h-[40px] bg-[#365377] hover:bg-[#284160] text-white text-xs font-bold rounded-full shadow-md hover:shadow-lg transition-all cursor-pointer focus:outline-none flex items-center justify-center gap-2"
+              disabled={uploading || queueItems.length === 0}
+              className="w-full h-[42px] bg-[#365377] hover:bg-[#284160] text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer focus:outline-none flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <UploadCloud className="w-4 h-4" />
-              Upload Tracks
+              Barcha treklarni yuklash ({queueItems.length} ta)
             </button>
           </div>
         </div>
       )}
 
-      {/* Summary statistics on completion */}
+      {/* Upload Results Report */}
       {!uploading && results.length > 0 && (
-        <div className="space-y-5 animate-fade-in">
-          {/* Counts Cards */}
+        <div className="space-y-5 animate-fade-in bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs">
+          {/* Summary Stats */}
           <div className="grid grid-cols-4 gap-2.5">
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
               <div className="text-lg font-extrabold text-slate-800">{totalFiles}</div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">Total</div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">Jami</div>
             </div>
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
               <div className="text-lg font-extrabold text-emerald-600">{successCount}</div>
-              <div className="text-[10px] font-bold text-emerald-500 uppercase tracking-wide mt-0.5">Success</div>
+              <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide mt-0.5">Muvaffaqiyatli</div>
             </div>
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
               <div className="text-lg font-extrabold text-amber-600">{duplicateCount}</div>
-              <div className="text-[10px] font-bold text-amber-500 uppercase tracking-wide mt-0.5">Duplicate</div>
+              <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wide mt-0.5">Takroriy</div>
             </div>
             <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-center">
               <div className="text-lg font-extrabold text-red-600">{failedCount}</div>
-              <div className="text-[10px] font-bold text-red-500 uppercase tracking-wide mt-0.5">Failed</div>
+              <div className="text-[10px] font-bold text-red-600 uppercase tracking-wide mt-0.5">Xato</div>
             </div>
           </div>
 
-          {/* Results Summary list */}
+          {/* Results list */}
           <div className="space-y-2">
             <div className="flex items-center justify-between px-1">
-              <span className="text-xs font-bold text-slate-850">Processing Report</span>
+              <span className="text-xs font-bold text-slate-800">Yuklangan treklar hisoboti</span>
               <button
                 onClick={clearAll}
-                className="text-xs text-[#365377] hover:underline font-semibold focus:outline-none"
+                className="text-xs text-[#365377] hover:underline font-bold focus:outline-none"
               >
-                Upload More
+                Yana yuklash
               </button>
             </div>
 
-            <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-2xl bg-white shadow-2xs overflow-hidden">
+            <div className="max-h-[380px] overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-xl bg-white overflow-hidden">
               {results.map((res, index) => (
                 <div key={`${res.fileName}-${index}`} className="p-3.5 hover:bg-slate-50 transition-colors flex items-start gap-3">
                   {res.status === "SUCCESS" && (
@@ -448,27 +662,34 @@ export default function UploadPage() {
                   )}
 
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-slate-800 truncate" title={res.fileName}>
-                      {res.fileName}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-800 truncate" title={res.fileName}>
+                        {res.title || res.fileName}
+                      </span>
+                      {res.artistName && (
+                        <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                          {res.artistName}
+                        </span>
+                      )}
                     </div>
-                    {res.title && (
-                      <div className="text-[11px] font-medium text-slate-500 mt-0.5">
-                        Title: {res.title}
-                      </div>
-                    )}
+
+                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                      Fayl: {res.fileName}
+                    </div>
+
                     {res.status === "SUCCESS" && res.musicId && (
-                      <div className="text-[10px] font-bold text-emerald-500 mt-0.5">
-                        ✓ Uploaded, Music ID: {res.musicId}
+                      <div className="text-[10px] font-bold text-emerald-600 mt-0.5">
+                        ✓ Qo'shildi, Musiqa ID: #{res.musicId}
                       </div>
                     )}
                     {res.status === "DUPLICATE" && res.musicId && (
-                      <div className="text-[10px] font-bold text-amber-500 mt-0.5">
-                        ⚠ Duplicate, Existing Music ID: {res.musicId}
+                      <div className="text-[10px] font-bold text-amber-600 mt-0.5">
+                        ⚠ Mavjud musiqa (takroriy), ID: #{res.musicId}
                       </div>
                     )}
                     {res.status === "FAILED" && res.error && (
-                      <div className="text-[10px] font-bold text-red-500 mt-0.5 leading-relaxed">
-                        ✕ Failed, Reason: {res.error}
+                      <div className="text-[10px] font-bold text-red-600 mt-0.5 leading-relaxed">
+                        ✕ Xatolik: {res.error}
                       </div>
                     )}
                   </div>

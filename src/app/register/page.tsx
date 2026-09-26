@@ -59,6 +59,12 @@ export default function RegisterPage() {
         });
         const loginData = await loginRes.json();
         if (loginRes.ok && loginData && loginData.success && loginData.data) {
+          try {
+            localStorage.setItem("remembered_username", username);
+            localStorage.setItem("remembered_password", password);
+          } catch {
+            // ignore
+          }
           await login(loginData.data);
           router.push("/");
           return;
@@ -74,13 +80,9 @@ export default function RegisterPage() {
     }
   };
 
-  const handleOAuthLogin = (provider: "google" | "telegram") => {
-    if (provider === "google") {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-      window.location.href = `${baseUrl}/oauth2/authorization/google`;
-    } else {
-      alert("Telegram OAuth is not supported by the backend.");
-    }
+  const handleOAuthLogin = () => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+    window.location.href = `${baseUrl}/oauth2/authorization/google`;
   };
 
   return (
@@ -199,13 +201,13 @@ export default function RegisterPage() {
         </div>
       </form>
 
-      {/* OAuth2 Social Login Buttons (Google, Telegram) */}
+      {/* OAuth2 Social Login Button (Google) */}
       <div className="mt-6 pt-2">
         <div className="flex items-center gap-2.5">
           {/* Google Button */}
           <button
             type="button"
-            onClick={() => handleOAuthLogin("google")}
+            onClick={handleOAuthLogin}
             className="w-8 h-8 rounded-full bg-white border border-slate-200 shadow-xs hover:shadow-md hover:scale-105 transition-all flex items-center justify-center group focus:outline-none"
             title="Register with Google"
             aria-label="Register with Google"
@@ -227,19 +229,6 @@ export default function RegisterPage() {
                 fill="#EA4335"
                 d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
               />
-            </svg>
-          </button>
-
-          {/* Telegram Button */}
-          <button
-            type="button"
-            onClick={() => handleOAuthLogin("telegram")}
-            className="w-8 h-8 rounded-full bg-[#24A1DE] hover:bg-[#1f8ec4] shadow-xs hover:shadow-md hover:scale-105 transition-all flex items-center justify-center text-white focus:outline-none"
-            title="Register with Telegram"
-            aria-label="Register with Telegram"
-          >
-            <svg className="w-3.5 h-3.5 fill-current mr-0.5" viewBox="0 0 24 24">
-              <path d="M20.665 3.717l-17.73 6.837c-1.21.486-1.203 1.161-.222 1.462l4.552 1.42 10.532-6.645c.498-.303.953-.14.579.192l-8.533 7.701h-.002l-.313 4.67c.457 0 .659-.208.914-.457l2.194-2.133 4.564 3.371c.841.464 1.447.225 1.657-.781l2.997-14.125c.307-1.23-.468-1.787-1.529-1.312z" />
             </svg>
           </button>
         </div>

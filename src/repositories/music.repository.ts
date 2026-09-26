@@ -1,9 +1,6 @@
 import { Track } from "../types/track";
 import { Playlist } from "../types/playlist";
 import { Genre } from "../types/genre";
-import { mockTracks } from "../mock/tracks";
-import { mockPlaylists } from "../mock/playlists";
-import { mockGenres } from "../mock/genres";
 import { api, buildMediaUrl, DEFAULT_AVATAR, DEFAULT_PLAYLIST_COVER } from "../lib/api/client";
 import { BackendMusicResponse, BackendPlaylistResponse, BackendPlaylistMusicResponse } from "../types/backend";
 
@@ -25,6 +22,20 @@ export interface MusicRepository {
   dislikeTrack(id: string): Promise<Track>;
   getLikedTracks(): Promise<Track[]>;
 }
+
+// Fallback genres if backend is unreachable
+const DEFAULT_GENRES: Genre[] = [
+  { id: "pop", name: "Pop", slug: "pop", description: "Mashhur pop qo'shiqlar va xitlar" },
+  { id: "rap", name: "Rap", slug: "rap", description: "Hiphop va rep yo'nalishidagi treklar" },
+  { id: "rock", name: "Rock", slug: "rock", description: "Klassik va zamonaviy rok musiqasi" },
+  { id: "hip_hop", name: "Hip-Hop", slug: "hip_hop", description: "Hip-Hop va bitlar" },
+  { id: "electronic", name: "Electronic", slug: "electronic", description: "Elektron va raqs musiqasi" },
+  { id: "jazz", name: "Jazz", slug: "jazz", description: "Klassik va zamonaviy jazz musiqasi" },
+  { id: "classical", name: "Classical", slug: "classical", description: "Klassik va simfonik kompozitsiyalar" },
+  { id: "r_and_b", name: "R&B", slug: "r_and_b", description: "R&B va soul treklari" },
+  { id: "k_pop", name: "K-Pop", slug: "k_pop", description: "K-Pop xitlari" },
+  { id: "other", name: "Boshqa", slug: "other", description: "Boshqa turli xil janrlar" }
+];
 
 // Map backend MusicResponse to frontend Track
 export function mapMusicToTrack(music: BackendMusicResponse): Track {
@@ -59,7 +70,9 @@ export function mapMusicToTrack(music: BackendMusicResponse): Track {
       coverUrl: music.album.image ? buildMediaUrl(music.album.image.url) : "",
       releaseDate: ""
     } : undefined,
-    coverUrl: music.album && music.album.image ? buildMediaUrl(music.album.image.url) : (music.artist && music.artist.image ? buildMediaUrl(music.artist.image.url) : ""),
+    coverUrl: music.album && music.album.image
+      ? buildMediaUrl(music.album.image.url)
+      : (music.artist && music.artist.image ? buildMediaUrl(music.artist.image.url) : ""),
     audioUrl: music.audioUrl ? buildMediaUrl(music.audioUrl) : `/api/v1/musics/${music.id}/audio`,
     duration: music.duration || 0,
     releaseDate: music.addedDate ? music.addedDate.split("T")[0] : "",
@@ -99,175 +112,49 @@ export function mapPlaylistToPlaylist(playlist: BackendPlaylistResponse): Playli
   };
 }
 
-// Simulated delay helper
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-export class MockMusicRepository implements MusicRepository {
-  async getPopularTracks(): Promise<Track[]> {
-    await delay(200);
-    return [...mockTracks].sort((a, b) => b.likesCount - a.likesCount);
-  }
-
-  async getTrackById(id: string): Promise<Track | null> {
-    await delay(100);
-    const track = mockTracks.find((t) => t.id === id);
-    return track || null;
-  }
-
-  async searchTracks(query: string): Promise<Track[]> {
-    await delay(200);
-    const q = query.toLowerCase().trim();
-    if (!q) return [];
-    return mockTracks.filter(
-      (t) =>
-        t.title.toLowerCase().includes(q) ||
-        t.artist.name.toLowerCase().includes(q) ||
-        t.album?.title.toLowerCase().includes(q)
-    );
-  }
-
-  async getPlaylists(): Promise<Playlist[]> {
-    await delay(150);
-    return mockPlaylists;
-  }
-
-  async getUserPlaylists(): Promise<Playlist[]> {
-    await delay(150);
-    return mockPlaylists.filter((p) => !p.isCollection);
-  }
-
-  async getCollections(): Promise<Playlist[]> {
-    await delay(150);
-    return mockPlaylists.filter((p) => p.isCollection);
-  }
-
-  async getPlaylistById(id: string): Promise<Playlist | null> {
-    await delay(150);
-    const playlist = mockPlaylists.find((p) => p.id === id);
-    return playlist || null;
-  }
-
-  async getPlaylistsByTag(tagName: string): Promise<Playlist[]> {
-    await delay(150);
-    const cleanTag = tagName.toLowerCase().trim().replace(/^#/, "");
-    return mockPlaylists.filter((p) => {
-      const tagMatches = (p.tagName || "playlists").toLowerCase() === cleanTag;
-      const titleMatches = p.title.toLowerCase().includes(cleanTag);
-      return tagMatches || titleMatches;
-    });
-  }
-
-  async votePlaylist(playlistId: string, rating: number): Promise<Playlist> {
-    await delay(150);
-    const playlist = mockPlaylists.find((p) => p.id === playlistId);
-    if (playlist) {
-      playlist.userRating = rating;
-      playlist.voteCount = (playlist.voteCount || 0) + 1;
-      playlist.averageRating = Math.round((((playlist.averageRating || 4.0) + rating) / 2) * 10) / 10;
-    }
-    return playlist || mockPlaylists[0];
-  }
-
-  async getGenres(): Promise<Genre[]> {
-    await delay(100);
-    return mockGenres;
-  }
-
-  async getGenreBySlug(slug: string): Promise<Genre | null> {
-    await delay(100);
-    const genre = mockGenres.find((g) => g.slug === slug);
-    return genre || null;
-  }
-
-  async getTracksByGenre(genreSlug: string): Promise<Track[]> {
-    await delay(150);
-    return mockTracks.filter((t) => t.artist.genres.includes(genreSlug));
-  }
-
-  async getPlaylistsByGenre(genreSlug: string): Promise<Playlist[]> {
-    await delay(150);
-    return mockPlaylists.filter((p) => {
-      const hasGenreTrack = p.tracks?.some((t) => t.artist.genres.includes(genreSlug));
-      const titleMatches = p.title.toLowerCase().includes(genreSlug.toLowerCase());
-      return hasGenreTrack || titleMatches;
-    });
-  }
-
-  async likeTrack(id: string): Promise<Track> {
-    await delay(100);
-    const track = mockTracks.find((t) => t.id === id);
-    if (track) {
-      track.isLiked = !track.isLiked;
-      if (track.isLiked) {
-        track.likesCount++;
-        if (track.isDisliked) {
-          track.isDisliked = false;
-          track.dislikesCount = Math.max(0, track.dislikesCount - 1);
-        }
-      } else {
-        track.likesCount = Math.max(0, track.likesCount - 1);
-      }
-    }
-    return track || mockTracks[0];
-  }
-
-  async dislikeTrack(id: string): Promise<Track> {
-    await delay(100);
-    const track = mockTracks.find((t) => t.id === id);
-    if (track) {
-      track.isDisliked = !track.isDisliked;
-      if (track.isDisliked) {
-        track.dislikesCount++;
-        if (track.isLiked) {
-          track.isLiked = false;
-          track.likesCount = Math.max(0, track.likesCount - 1);
-        }
-      } else {
-        track.dislikesCount = Math.max(0, track.dislikesCount - 1);
-      }
-    }
-    return track || mockTracks[0];
-  }
-
-  async getLikedTracks(): Promise<Track[]> {
-    await delay(100);
-    return mockTracks.filter((t) => t.isLiked);
-  }
-}
-
 export class ApiMusicRepository implements MusicRepository {
   async getPopularTracks(): Promise<Track[]> {
-    const response = await api.get<{ content: BackendMusicResponse[] }>("/api/v1/musics?page=0&size=50&sortBy=likeCount&sortDirection=desc");
-    const content = response.content || [];
-    return content.map(mapMusicToTrack);
+    try {
+      const response = await api.get<{ content: BackendMusicResponse[] }>("/api/v1/musics?page=0&size=50&sortBy=likes&sortDirection=desc");
+      const content = response.content || [];
+      return content.map(mapMusicToTrack);
+    } catch {
+      return [];
+    }
   }
 
   async getTrackById(id: string): Promise<Track | null> {
     if (!/^\d+$/.test(id)) {
       return null;
     }
-    const data = await api.get<BackendMusicResponse>(`/api/v1/musics/${id}`);
-    return mapMusicToTrack(data);
+    try {
+      const data = await api.get<BackendMusicResponse>(`/api/v1/musics/${id}`);
+      return mapMusicToTrack(data);
+    } catch {
+      return null;
+    }
   }
 
   async searchTracks(query: string): Promise<Track[]> {
     const q = query.toLowerCase().trim();
-    const response = await api.get<{ content: BackendMusicResponse[] }>("/api/v1/musics?page=0&size=100");
-    const content = response.content || [];
-    const tracks = content.map(mapMusicToTrack);
-    if (!q) return tracks;
-    return tracks.filter(
-      (t: Track) =>
-        t.title.toLowerCase().includes(q) ||
-        t.artist.name.toLowerCase().includes(q) ||
-        (t.album && t.album.title.toLowerCase().includes(q))
-    );
+    if (!q) return [];
+    try {
+      const response = await api.get<{ content: BackendMusicResponse[] }>(`/api/v1/musics/search?query=${encodeURIComponent(q)}&page=0&size=50`);
+      const content = response.content || [];
+      return content.map(mapMusicToTrack);
+    } catch {
+      return [];
+    }
   }
 
   async getPlaylists(): Promise<Playlist[]> {
-    const response = await api.get<{ content: BackendPlaylistResponse[] }>("/api/v1/playlists?page=0&size=50");
-    const content = response.content || [];
-    return content.map(mapPlaylistToPlaylist);
+    try {
+      const response = await api.get<{ content: BackendPlaylistResponse[] }>("/api/v1/playlists?page=0&size=50");
+      const content = response.content || [];
+      return content.map(mapPlaylistToPlaylist);
+    } catch {
+      return [];
+    }
   }
 
   async getUserPlaylists(): Promise<Playlist[]> {
@@ -275,8 +162,7 @@ export class ApiMusicRepository implements MusicRepository {
       const response = await api.get<{ content: BackendPlaylistResponse[] }>("/api/v1/playlists/my?page=0&size=50");
       const content = response.content || [];
       return content.map(mapPlaylistToPlaylist);
-    } catch (e) {
-      console.error("Failed to fetch user playlists", e);
+    } catch {
       return [];
     }
   }
@@ -286,8 +172,7 @@ export class ApiMusicRepository implements MusicRepository {
       const response = await api.get<{ content: BackendPlaylistResponse[] }>("/api/v1/playlists/collections?page=0&size=50");
       const content = response.content || [];
       return content.map(mapPlaylistToPlaylist);
-    } catch (e) {
-      console.error("Failed to fetch collections", e);
+    } catch {
       return [];
     }
   }
@@ -296,19 +181,22 @@ export class ApiMusicRepository implements MusicRepository {
     if (!/^\d+$/.test(id)) {
       return null;
     }
-    const data = await api.get<BackendPlaylistResponse>(`/api/v1/playlists/${id}`);
-    return mapPlaylistToPlaylist(data);
+    try {
+      const data = await api.get<BackendPlaylistResponse>(`/api/v1/playlists/${id}`);
+      return mapPlaylistToPlaylist(data);
+    } catch {
+      return null;
+    }
   }
 
   async getPlaylistsByTag(tagName: string): Promise<Playlist[]> {
-    const cleanTag = tagName.toLowerCase().trim().replace(/^#/, "");
     try {
+      const cleanTag = tagName.toLowerCase().trim().replace(/^#/, "");
       const response = await api.get<{ content: BackendPlaylistResponse[] }>(`/api/v1/playlists/tag/${encodeURIComponent(cleanTag)}?page=0&size=50`);
       const content = response.content || [];
       return content.map(mapPlaylistToPlaylist);
-    } catch (e) {
-      const allPlaylists = await this.getPlaylists();
-      return allPlaylists.filter((p) => (p.tagName || "playlists").toLowerCase() === cleanTag);
+    } catch {
+      return [];
     }
   }
 
@@ -318,31 +206,55 @@ export class ApiMusicRepository implements MusicRepository {
   }
 
   async getGenres(): Promise<Genre[]> {
-    return mockGenres;
+    try {
+      const data = await api.get<Genre[]>("/api/v1/genres");
+      if (Array.isArray(data) && data.length > 0) {
+        return data;
+      }
+    } catch {
+      // fallback to DEFAULT_GENRES
+    }
+    return DEFAULT_GENRES;
   }
 
   async getGenreBySlug(slug: string): Promise<Genre | null> {
-    const genre = mockGenres.find((g) => g.slug === slug);
+    const genres = await this.getGenres();
+    const cleanSlug = slug.toLowerCase().replace("-", "_").trim();
+    const genre = genres.find((g) =>
+      g.slug.toLowerCase() === slug.toLowerCase() ||
+      g.slug.toLowerCase() === cleanSlug ||
+      g.id.toLowerCase() === slug.toLowerCase()
+    );
     return genre || null;
   }
 
   async getTracksByGenre(genreSlug: string): Promise<Track[]> {
-    const response = await api.get<any>("/api/v1/musics?page=0&size=100");
-    const content = response.content || [];
-    const tracks = content.map(mapMusicToTrack);
-    return tracks.filter((t: Track) =>
-      t.artist.genres.map(g => g.toLowerCase()).includes(genreSlug.toLowerCase()) ||
-      t.format?.toLowerCase() === genreSlug.toLowerCase()
-    );
+    try {
+      const response = await api.get<any>("/api/v1/musics?page=0&size=100");
+      const content = response.content || [];
+      const tracks = content.map(mapMusicToTrack);
+      const cleanGenre = genreSlug.toLowerCase().replace("-", "");
+      return tracks.filter((t: Track) =>
+        t.artist.genres.some(g => g.toLowerCase().replace(/[-_]/g, "") === cleanGenre) ||
+        t.format?.toLowerCase() === genreSlug.toLowerCase()
+      );
+    } catch {
+      return [];
+    }
   }
 
   async getPlaylistsByGenre(genreSlug: string): Promise<Playlist[]> {
-    const playlists = await this.getPlaylists();
-    return playlists.filter((p) => {
-      const hasGenreTrack = p.tracks?.some((t) => t.artist.genres.map(g => g.toLowerCase()).includes(genreSlug.toLowerCase()));
-      const titleMatches = p.title.toLowerCase().includes(genreSlug.toLowerCase());
-      return hasGenreTrack || titleMatches;
-    });
+    try {
+      const playlists = await this.getPlaylists();
+      const clean = genreSlug.toLowerCase();
+      return playlists.filter((p) => {
+        const hasGenreTrack = p.tracks?.some((t) => t.artist.genres.map(g => g.toLowerCase()).includes(clean));
+        const titleMatches = p.title.toLowerCase().includes(clean);
+        return hasGenreTrack || titleMatches;
+      });
+    } catch {
+      return [];
+    }
   }
 
   async likeTrack(id: string): Promise<Track> {
@@ -356,8 +268,12 @@ export class ApiMusicRepository implements MusicRepository {
   }
 
   async getLikedTracks(): Promise<Track[]> {
-    const data = await api.get<BackendMusicResponse[]>("/api/v1/musics/liked");
-    return data.map(mapMusicToTrack);
+    try {
+      const data = await api.get<BackendMusicResponse[]>("/api/v1/musics/liked");
+      return Array.isArray(data) ? data.map(mapMusicToTrack) : [];
+    } catch {
+      return [];
+    }
   }
 }
 

@@ -412,10 +412,10 @@ export function AddToPlaylistPopover({
         }}
         disabled={disabled || !track}
         className={cn(
-          "rounded transition-colors focus:outline-none",
+          "rounded transition-colors focus:outline-none flex items-center justify-center shrink-0",
           triggerSize === "sm"
-            ? "p-0.5 text-slate-400 hover:text-slate-700"
-            : "p-1 text-slate-500 hover:text-slate-900",
+            ? "w-6 h-6 text-slate-400 hover:text-slate-700"
+            : "w-7 h-7 text-slate-500 hover:text-slate-900",
           disabled || !track
             ? "text-slate-300 pointer-events-none cursor-not-allowed"
             : isOpen
@@ -426,7 +426,7 @@ export function AddToPlaylistPopover({
         aria-haspopup="true"
         aria-expanded={isOpen}
       >
-        <Plus className={triggerSize === "sm" ? "w-4 h-4 stroke-[1.75]" : "w-4.5 h-4.5"} />
+        <Plus className={triggerSize === "sm" ? "w-4 h-4 stroke-[1.75]" : "w-[18px] h-[18px]"} />
       </button>
     </div>
   );

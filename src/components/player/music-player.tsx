@@ -27,7 +27,6 @@ import {
   Shuffle,
   List,
   Heart,
-  Plus,
   Download,
   X,
   ChevronDown
@@ -117,7 +116,7 @@ export function MusicPlayer() {
       <div className="hidden lg:flex fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[1100px] h-[66px] bg-white border-t border-slate-200 select-none z-50 shadow-[0_-4px_25px_rgba(0,0,0,0.15)] flex-col justify-between px-4 sm:px-6 py-1.5">
         <div className="w-full relative flex items-center gap-3">
           {/* Current Time on Left */}
-          <span className={cn("text-[11px] font-medium select-none min-w-[32px]", hasTrack ? "text-slate-400" : "text-slate-300")}>
+          <span className={cn("text-[11px] font-medium select-none w-9 text-left tabular-nums shrink-0", hasTrack ? "text-slate-400" : "text-slate-300")}>
             {hasTrack ? formatDuration(currentTime, true) : "00:00"}
           </span>
 
@@ -148,7 +147,7 @@ export function MusicPlayer() {
           </div>
 
           {/* Total Duration on Right */}
-          <span className={cn("text-[11px] font-medium select-none min-w-[32px] text-right", hasTrack ? "text-slate-400" : "text-slate-300")}>
+          <span className={cn("text-[11px] font-medium select-none w-9 text-right tabular-nums shrink-0", hasTrack ? "text-slate-400" : "text-slate-300")}>
             {hasTrack ? formatDuration(duration, true) : "00:00"}
           </span>
         </div>
@@ -156,21 +155,21 @@ export function MusicPlayer() {
         {/* Player Body Bar: Left Controls, Center Track Info, Right Actions */}
         <div className="flex-1 w-full flex items-center justify-between pt-0.5 relative">
           {/* Left Controls: Prev, Play/Pause, Next, Queue/List, Repeat, Shuffle */}
-          <div className="flex items-center gap-2.5 shrink-0 z-10">
+          <div className="flex items-center gap-2 shrink-0 z-10">
             {/* Previous */}
             <button
               type="button"
               onClick={hasTrack ? previous : undefined}
               disabled={!hasTrack}
               className={cn(
-                "p-1.5 rounded transition-colors focus:outline-none",
+                "w-7 h-7 flex items-center justify-center shrink-0 rounded transition-colors focus:outline-none",
                 hasTrack
                   ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
                   : "text-slate-300 pointer-events-none cursor-not-allowed"
               )}
               aria-label="Previous track"
             >
-              <SkipBack className="w-4.5 h-4.5 fill-current" />
+              <SkipBack className="w-[18px] h-[18px] fill-current" />
             </button>
 
             {/* Play / Pause */}
@@ -179,7 +178,7 @@ export function MusicPlayer() {
               onClick={hasTrack ? togglePlay : undefined}
               disabled={!hasTrack}
               className={cn(
-                "p-1.5 rounded transition-colors focus:outline-none",
+                "w-7 h-7 flex items-center justify-center shrink-0 rounded transition-colors focus:outline-none",
                 hasTrack
                   ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
                   : "text-slate-300 pointer-events-none cursor-not-allowed"
@@ -187,9 +186,9 @@ export function MusicPlayer() {
               aria-label={isPlaying ? "Pause track" : "Play track"}
             >
               {isPlaying ? (
-                <Pause className="w-5 h-5 fill-current" />
+                <Pause className="w-[18px] h-[18px] fill-current" />
               ) : (
-                <Play className="w-5 h-5 fill-current ml-0.5" />
+                <Play className="w-[18px] h-[18px] fill-current" />
               )}
             </button>
 
@@ -199,14 +198,14 @@ export function MusicPlayer() {
               onClick={hasTrack ? next : undefined}
               disabled={!hasTrack}
               className={cn(
-                "p-1.5 rounded transition-colors focus:outline-none",
+                "w-7 h-7 flex items-center justify-center shrink-0 rounded transition-colors focus:outline-none",
                 hasTrack
                   ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
                   : "text-slate-300 pointer-events-none cursor-not-allowed"
               )}
               aria-label="Next track"
             >
-              <SkipForward className="w-4.5 h-4.5 fill-current" />
+              <SkipForward className="w-[18px] h-[18px] fill-current" />
             </button>
 
             {/* Queue / Playlist Overlay Toggle Button (Active when open) */}
@@ -215,7 +214,7 @@ export function MusicPlayer() {
               onClick={hasTrack ? () => setQueueModalOpen(!queueModalOpen) : undefined}
               disabled={!hasTrack}
               className={cn(
-                "p-1.5 rounded transition-colors focus:outline-none",
+                "w-7 h-7 flex items-center justify-center shrink-0 rounded transition-colors focus:outline-none",
                 !hasTrack
                   ? "text-slate-300 pointer-events-none cursor-not-allowed"
                   : queueModalOpen
@@ -224,7 +223,7 @@ export function MusicPlayer() {
               )}
               aria-label="Toggle playlist queue overlay"
             >
-              <List className="w-4.5 h-4.5" />
+              <List className="w-[18px] h-[18px]" />
             </button>
 
             {/* Repeat */}
@@ -233,18 +232,18 @@ export function MusicPlayer() {
               onClick={hasTrack ? toggleRepeat : undefined}
               disabled={!hasTrack}
               className={cn(
-                "p-1.5 rounded transition-colors focus:outline-none relative",
+                "w-7 h-7 flex items-center justify-center shrink-0 rounded transition-colors focus:outline-none relative",
                 !hasTrack
                   ? "text-slate-300 pointer-events-none cursor-not-allowed"
                   : repeatMode !== "off"
-                    ? "text-amber-500 font-bold hover:bg-slate-100 cursor-pointer"
+                    ? "text-amber-500 hover:bg-slate-100 cursor-pointer"
                     : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
               )}
               aria-label={`Repeat mode: ${repeatMode}`}
             >
-              <Repeat className="w-4.5 h-4.5" />
+              <Repeat className="w-[18px] h-[18px]" />
               {repeatMode === "one" && hasTrack && (
-                <span className="absolute -top-0.5 -right-0.5 bg-amber-500 text-[8px] font-bold text-white leading-none px-1 rounded-full">
+                <span className="absolute -top-0.5 -right-0.5 bg-amber-500 text-[8px] font-bold text-white leading-none px-1 rounded-full pointer-events-none">
                   1
                 </span>
               )}
@@ -256,16 +255,16 @@ export function MusicPlayer() {
               onClick={hasTrack ? toggleShuffle : undefined}
               disabled={!hasTrack}
               className={cn(
-                "p-1.5 rounded transition-colors focus:outline-none",
+                "w-7 h-7 flex items-center justify-center shrink-0 rounded transition-colors focus:outline-none",
                 !hasTrack
                   ? "text-slate-300 pointer-events-none cursor-not-allowed"
                   : isShuffled
-                    ? "text-amber-500 font-bold hover:bg-slate-100 cursor-pointer"
+                    ? "text-amber-500 hover:bg-slate-100 cursor-pointer"
                     : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
               )}
               aria-label="Shuffle queue"
             >
-              <Shuffle className="w-4.5 h-4.5" />
+              <Shuffle className="w-[18px] h-[18px]" />
             </button>
           </div>
 
@@ -290,7 +289,7 @@ export function MusicPlayer() {
           </div>
 
           {/* Right Controls: Quality, Volume, Like, Plus, Download */}
-          <div className="flex items-center gap-3 shrink-0 z-10">
+          <div className="flex items-center gap-2 shrink-0 z-10">
             {/* Audio Quality MQ / HQ Popover (Matches Screenshot) */}
             <AudioQualityPopover quality={quality} setQuality={setQuality} disabled={!hasTrack} />
 
@@ -303,7 +302,7 @@ export function MusicPlayer() {
               onClick={hasTrack ? handlePlayerLikeClick : undefined}
               disabled={!hasTrack}
               className={cn(
-                "p-1 transition-colors focus:outline-none",
+                "w-7 h-7 flex items-center justify-center shrink-0 rounded transition-colors focus:outline-none",
                 !hasTrack
                   ? "text-slate-300 pointer-events-none cursor-not-allowed"
                   : isLiked
@@ -312,7 +311,7 @@ export function MusicPlayer() {
               )}
               aria-label={isLiked ? "Unlike" : "Like"}
             >
-              <Heart className={cn("w-4.5 h-4.5", isLiked && hasTrack ? "fill-current" : "")} />
+              <Heart className={cn("w-[18px] h-[18px]", isLiked && hasTrack ? "fill-current" : "")} />
             </button>
 
             {/* Add to Playlist Popover (Matches Screenshot) */}
@@ -324,12 +323,12 @@ export function MusicPlayer() {
               onClick={hasTrack && currentTrack ? () => downloadTrack(currentTrack) : undefined}
               disabled={!hasTrack}
               className={cn(
-                "p-1 transition-colors focus:outline-none",
+                "w-7 h-7 flex items-center justify-center shrink-0 rounded transition-colors focus:outline-none",
                 hasTrack ? "text-slate-500 hover:text-slate-900 cursor-pointer" : "text-slate-300 pointer-events-none cursor-not-allowed"
               )}
               aria-label="Download"
             >
-              <Download className="w-4.5 h-4.5" />
+              <Download className="w-[18px] h-[18px]" />
             </button>
           </div>
         </div>
@@ -351,7 +350,7 @@ export function MusicPlayer() {
                 )}
               </div>
               <h2 className="text-xs sm:text-sm font-semibold text-slate-800 truncate">
-                {currentTrack.title} — {currentTrack.artist.name} (current playlist)
+                {currentTrack.artist.name} — {currentTrack.title}
               </h2>
             </div>
             <button

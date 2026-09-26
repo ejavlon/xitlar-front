@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { mainNavItems, genreTags } from "../../config/navigation";
+import {
+  discoverNavItems,
+  libraryNavItems,
+  popularGenres
+} from "../../config/navigation";
 import { cn } from "../../lib/utils";
-
-import { useAuthStore } from "../../stores/auth-store";
+import { ChevronRight } from "lucide-react";
 
 interface SidebarProps {
   onClose?: () => void; // for mobile drawer close
@@ -13,84 +16,138 @@ interface SidebarProps {
 
 export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
-  const user = useAuthStore((s) => s.user);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-
-  const isAuthorized = isAuthenticated && (user?.role === "ADMIN" || user?.role === "MODERATOR");
-
-  const filteredNavItems = mainNavItems.filter((item) => {
-    if (item.href === "/upload") {
-      return isAuthorized;
-    }
-    return true;
-  });
-
-  const visibleNavItems = [...filteredNavItems];
 
   const handleLinkClick = () => {
     if (onClose) onClose();
   };
 
   return (
-    <div className="w-full flex flex-col gap-4 select-none">
-      {/* 1. Discover / Categories Section */}
-      <nav className="flex flex-col space-y-0.5">
-        {visibleNavItems.map((item) => {
-          const isActive =
-            pathname === item.href ||
-            (item.href !== "/" && pathname.startsWith(item.href));
-          const Icon = item.icon;
-
-          return (
-            <Link
-              key={item.label}
-              href={item.href}
-              onClick={handleLinkClick}
-              className={cn(
-                "flex items-center gap-2.5 px-2 py-1 rounded-md text-xs sm:text-[13px] font-medium transition-colors group",
-                isActive
-                  ? "bg-slate-100 text-[#365377] font-semibold"
-                  : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-              )}
-            >
-              {/* Colorful round circle badge */}
-              <div
-                className={cn(
-                  "w-5 h-5 rounded-full flex items-center justify-center shrink-0 shadow-2xs transition-transform group-hover:scale-105",
-                  item.color
-                )}
-              >
-                <Icon className="w-3 h-3" />
-              </div>
-              <span className="truncate">{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* 2. Music by Genres Section */}
-      <div className="space-y-2.5 pt-3 border-t border-slate-100">
-        <h3 className="text-[14px] font-bold text-slate-900 tracking-tight">
-          Music by Genres
-        </h3>
-        <div className="grid grid-cols-3 gap-1.5">
-          {genreTags.map((tag) => {
-            const isSelected = Boolean(tag.slug && pathname === `/genres/${tag.slug}`);
-            const isMore = tag.label === "more...";
+    <div className="w-full flex flex-col gap-5 select-none font-sans">
+      {/* 1. Discover / Main Navigation */}
+      <div className="space-y-1">
+        <div className="px-2.5 pb-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+          Discover
+        </div>
+        <nav className="flex flex-col space-y-0.5">
+          {discoverNavItems.map((item) => {
+            const isActive =
+              pathname === item.href ||
+              (item.href !== "/" && pathname.startsWith(item.href));
+            const Icon = item.icon;
 
             return (
               <Link
-                key={tag.label}
-                href={tag.slug ? `/genres/${tag.slug}` : "/genres"}
+                key={item.label}
+                href={item.href}
                 onClick={handleLinkClick}
                 className={cn(
-                  "h-[28px] px-1 flex items-center justify-center rounded-[6px] border text-[11.5px] font-medium transition-all text-center select-none truncate",
-                  isSelected
-                    ? "bg-[#365377] text-white border-[#365377] shadow-2xs"
-                    : "bg-[#e9eef5] hover:bg-[#dde5ef] text-[#334155] border-[#d9e2ec] hover:border-[#cbd5e1] hover:text-slate-900"
+                  "relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-all group",
+                  isActive
+                    ? "bg-slate-100 text-[#365377] font-semibold before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-1 before:bg-[#365377] before:rounded-r-full"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 )}
               >
-                {isMore ? "more..." : `# ${tag.label}`}
+                {/* Modern rounded-lg icon container */}
+                <div
+                  className={cn(
+                    "w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-transform ",
+                    isActive
+                      ? "bg-[#365377] text-white shadow-2xs"
+                      : cn(item.badgeBg, item.badgeText, item.badgeBgHover)
+                  )}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                </div>
+
+                <span className="truncate flex-1">{item.label}</span>
+
+                {/* Optional subtle tag badge (e.g. HOT) */}
+                {item.tag && (
+                  <span className="px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide uppercase bg-amber-100 text-amber-700 rounded">
+                    {item.tag}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* 2. My Music / Library Section */}
+      <div className="space-y-1 pt-2 border-t border-slate-100">
+        <div className="px-2.5 pb-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+          My Library
+        </div>
+        <nav className="flex flex-col space-y-0.5">
+          {libraryNavItems.map((item) => {
+            const isActive =
+              pathname === item.href ||
+              (item.href !== "/" && pathname.startsWith(item.href));
+            const Icon = item.icon;
+
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={handleLinkClick}
+                className={cn(
+                  "relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-all group",
+                  isActive
+                    ? "bg-slate-100 text-[#365377] font-semibold before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-1 before:bg-[#365377] before:rounded-r-full"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                )}
+              >
+                <div
+                  className={cn(
+                    "w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-transform group-hover:scale-105",
+                    isActive
+                      ? "bg-[#365377] text-white shadow-2xs"
+                      : cn(item.badgeBg, item.badgeText, item.badgeBgHover)
+                  )}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                </div>
+                <span className="truncate flex-1">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* 3. Popular Genres Section */}
+      <div className="space-y-2 pt-2 border-t border-slate-100">
+        <div className="flex items-center justify-between px-2.5">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            Popular Genres
+          </span>
+          <Link
+            href="/genres"
+            onClick={handleLinkClick}
+            className="text-[11px] font-semibold text-slate-400 hover:text-[#365377] transition-colors flex items-center gap-0.5 group"
+          >
+            <span>All</span>
+            <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        </div>
+
+        {/* Clean, modern genre pill cloud */}
+        <div className="flex flex-wrap gap-1.5 px-1">
+          {popularGenres.map((tag) => {
+            const isSelected = Boolean(tag.slug && pathname === `/genres/${tag.slug}`);
+
+            return (
+              <Link
+                key={tag.slug}
+                href={`/genres/${tag.slug}`}
+                onClick={handleLinkClick}
+                className={cn(
+                  "px-2.5 py-1 rounded-full text-xs font-medium transition-all text-center select-none",
+                  isSelected
+                    ? "bg-[#365377] text-white border border-[#365377] shadow-2xs font-semibold"
+                    : "bg-slate-100/80 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 border border-slate-200/50"
+                )}
+              >
+                {tag.label}
               </Link>
             );
           })}

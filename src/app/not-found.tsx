@@ -20,22 +20,6 @@ export default function NotFound() {
         The page, track, or artist you are looking for does not exist or has been moved to another frequency.
       </p>
 
-      <div className="flex flex-wrap items-center justify-center gap-4">
-        <Link
-          href="/"
-          className="flex items-center gap-2 px-6 py-3 bg-[#8b5cf6] text-white text-sm font-bold rounded-full hover:scale-105 transition-transform shadow-lg glow-primary"
-        >
-          <Home className="w-4 h-4" />
-          <span>Back to Home</span>
-        </Link>
-        <Link
-          href="/search"
-          className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 text-white text-sm font-semibold rounded-full hover:bg-white/10 transition-colors"
-        >
-          <Search className="w-4 h-4" />
-          <span>Search Xitlar</span>
-        </Link>
-      </div>
     </div>
   );
 }

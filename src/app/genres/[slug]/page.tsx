@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Track } from "../../../types/track";
@@ -53,6 +53,15 @@ export default function GenreDetailPage() {
     fetchGenreData();
   }, [slug]);
 
+  const freshTracks = useMemo(() => {
+    return showAllFresh ? tracks : tracks.slice(0, 5);
+  }, [tracks, showAllFresh]);
+
+  const topTracks = useMemo(() => {
+    const sorted = [...tracks].sort((a, b) => b.likesCount - a.likesCount);
+    return showAllTop ? sorted : sorted.slice(0, 5);
+  }, [tracks, showAllTop]);
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-2">
@@ -61,11 +70,6 @@ export default function GenreDetailPage() {
       </div>
     );
   }
-  
-  const freshTracks = showAllFresh ? tracks : tracks.slice(0, 5);
-  const topTracks = showAllTop
-    ? [...tracks].sort((a, b) => b.likesCount - a.likesCount)
-    : [...tracks].sort((a, b) => b.likesCount - a.likesCount).slice(0, 5);
 
   return (
     <div className="space-y-7 select-none animate-fade-in font-sans">

@@ -16,14 +16,9 @@ import {
   AlignLeft,
   X,
   Play,
-  Pause,
   ShieldCheck
 } from "lucide-react";
 import Link from "next/link";
-import { User as UserType } from "../../types/user";
-import { Track } from "../../types/track";
-import { Artist } from "../../types/artist";
-import { userService } from "../../services/user.service";
 import { musicService } from "../../services/music.service";
 import { artistService } from "../../services/artist.service";
 import { usePlayerStore } from "../../stores/player-store";
@@ -401,16 +396,6 @@ export function Header({ onMenuToggle }: HeaderProps) {
                   >
                     <Users className="w-4 h-4 text-slate-400" />
                     <span>Artists</span>
-                  </Link>
-
-                  <Link
-                    href="/profile?tab=clips"
-                    onClick={() => setDropdownOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2 hover:bg-slate-50 hover:text-[#365377] transition-colors"
-                    role="menuitem"
-                  >
-                    <Video className="w-4 h-4 text-slate-400" />
-                    <span>Clips</span>
                   </Link>
 
                   <Link
