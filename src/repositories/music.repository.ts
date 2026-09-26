@@ -95,10 +95,16 @@ export function mapMusicToTrack(music: BackendMusicResponse): Track {
 
 // Map backend PlaylistResponse to frontend Playlist
 export function mapPlaylistToPlaylist(playlist: BackendPlaylistResponse): Playlist {
+  const isCollection = playlist.isCollection ?? false;
+  // Collection uchun tagName backend dan keladi (admin beradi)
+  // Playlist uchun tagName "playlist" bo'ladi (foydalanuvchi o'zgartira olmaydi)
+  const tagName = isCollection
+    ? (playlist.tagName && playlist.tagName.trim() !== "" ? playlist.tagName.trim() : undefined)
+    : "playlist";
   return {
     id: String(playlist.id),
     title: playlist.title,
-    tagName: playlist.tagName || "playlists",
+    tagName,
     description: playlist.description || "",
     coverUrl: playlist.image ? buildMediaUrl(playlist.image.url) : DEFAULT_PLAYLIST_COVER,
     trackCount: playlist.trackCount ?? (playlist.musics ? playlist.musics.length : 0),
@@ -107,7 +113,7 @@ export function mapPlaylistToPlaylist(playlist: BackendPlaylistResponse): Playli
     userRating: playlist.userRating,
     createdAt: playlist.createdAt,
     tracks: playlist.musics ? playlist.musics.map((pm: BackendPlaylistMusicResponse) => mapMusicToTrack(pm as any)) : [],
-    isCollection: playlist.isCollection ?? false,
+    isCollection,
     creator: playlist.createdBy ? `${playlist.createdBy.firstName || ""} ${playlist.createdBy.lastName || ""}`.trim() || playlist.createdBy.username : undefined
   };
 }

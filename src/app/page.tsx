@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   description: "Discover popular artists, trending hits, and curated music collections.",
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 // Serverda data fetch — hydration yo'q, TTFB tezroq
 export default async function HomePage() {
   const [popularTracks, popularArtists, playlists] = await Promise.all([

@@ -157,6 +157,20 @@ export function AddToPlaylistPopover({
         ? `Track successfully added to "${playlistTitle}"`
         : `Track successfully removed from "${playlistTitle}"`;
       showFeedback(msg, nextChecked ? "add" : "remove");
+
+      // Dispatch real-time events for instant UI synchronization
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("xitlar:playlist-tracks-changed", {
+            detail: {
+              playlistId: String(playlistId),
+              track,
+              action: nextChecked ? "add" : "remove"
+            }
+          })
+        );
+        window.dispatchEvent(new CustomEvent("xitlar:playlists-changed"));
+      }
     } catch (err: any) {
       console.error("Failed to toggle track in playlist:", err);
       alert(err.message || "Failed to update playlist.");
@@ -201,6 +215,20 @@ export function AddToPlaylistPopover({
         setNewTitle("");
         setIsCreating(false);
         showFeedback(`Track successfully added to "${title}"`, "add");
+
+        // Dispatch real-time events for instant UI synchronization
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("xitlar:playlist-tracks-changed", {
+              detail: {
+                playlistId: String(playlistId),
+                track,
+                action: "add"
+              }
+            })
+          );
+          window.dispatchEvent(new CustomEvent("xitlar:playlists-changed"));
+        }
       }
     } catch (err: any) {
       console.error("Failed to create playlist:", err);

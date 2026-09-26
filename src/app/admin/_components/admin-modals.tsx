@@ -388,42 +388,60 @@ export function TrackDetailsModal({
   );
 }
 
-// ──────────── 8. Create/Edit Playlist Modal ────────────
+// ──────────── 8. Create/Edit Collection Modal ────────────
 export function PlaylistModal({
-  show, isEdit, playlistTitle, playlistDescription, setPlaylistTitle, setPlaylistDescription, setPlaylistFile, onClose, onSubmit,
+  show, isEdit, playlistTitle, playlistDescription, playlistTagName,
+  setPlaylistTitle, setPlaylistDescription, setPlaylistTagName, setPlaylistFile, onClose, onSubmit,
 }: {
-  show: boolean; isEdit: boolean; playlistTitle: string; playlistDescription: string;
-  setPlaylistTitle: (v: string) => void; setPlaylistDescription: (v: string) => void; setPlaylistFile: (f: File | null) => void;
+  show: boolean; isEdit: boolean; playlistTitle: string; playlistDescription: string; playlistTagName: string;
+  setPlaylistTitle: (v: string) => void; setPlaylistDescription: (v: string) => void;
+  setPlaylistTagName: (v: string) => void; setPlaylistFile: (f: File | null) => void;
   onClose: () => void; onSubmit: (e: React.FormEvent) => void;
 }) {
   if (!show) return null;
   return (
     <ModalBackdrop>
-      <form onSubmit={onSubmit} className="w-full max-w-[420px] bg-white rounded-2xl border border-slate-200 p-5 shadow-2xl space-y-4">
+      <form onSubmit={onSubmit} className="w-full max-w-[460px] bg-white rounded-2xl border border-slate-200 p-5 shadow-2xl space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-          <h3 className="text-sm font-bold text-slate-900 font-sans">{isEdit ? "Edit Playlist Details" : "Create New Playlist"}</h3>
+          <h3 className="text-sm font-bold text-slate-900 font-sans">{isEdit ? "Kolleksiyani tahrirlash" : "Yangi kolleksiya yaratish"}</h3>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 font-bold text-sm focus:outline-none">✕</button>
         </div>
         <div className="space-y-3">
           <div>
-            <label className="block text-[11px] font-bold text-slate-450 uppercase mb-1">Playlist Title</label>
-            <input type="text" required value={playlistTitle} onChange={(e) => setPlaylistTitle(e.target.value)} placeholder="e.g. Relaxing Chill Beats"
+            <label className="block text-[11px] font-bold text-slate-450 uppercase mb-1">Kolleksiya nomi *</label>
+            <input type="text" required value={playlistTitle} onChange={(e) => setPlaylistTitle(e.target.value)} placeholder="Masalan: 80s Diskoteka"
               className="w-full h-[36px] px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:bg-white focus:border-indigo-500 transition-all text-slate-800" />
           </div>
           <div>
-            <label className="block text-[11px] font-bold text-slate-450 uppercase mb-1">Description</label>
-            <textarea value={playlistDescription} onChange={(e) => setPlaylistDescription(e.target.value)} rows={3} placeholder="Describe this playlist selection..."
+            <label className="block text-[11px] font-bold text-slate-450 uppercase mb-1">
+              Tag nomi *
+              <span className="ml-1.5 text-[10px] text-slate-400 normal-case font-normal">(masalan: retro, pop, dance)</span>
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">#</span>
+              <input
+                type="text" required value={playlistTagName}
+                onChange={(e) => setPlaylistTagName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                placeholder="retro"
+                className="w-full h-[36px] pl-7 pr-3 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:bg-white focus:border-indigo-500 transition-all text-slate-800 font-mono"
+              />
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1">Faqat kichik harf, raqam va _ belgisi. Tag kolleksiyalarni guruhlaydi.</p>
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-slate-450 uppercase mb-1">Tavsif</label>
+            <textarea value={playlistDescription} onChange={(e) => setPlaylistDescription(e.target.value)} rows={2} placeholder="Kolleksiya haqida qisqacha..."
               className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:bg-white focus:border-indigo-500 transition-all text-slate-800" />
           </div>
           <div>
-            <label className="block text-[11px] font-bold text-slate-450 uppercase mb-1">Playlist Cover Image {isEdit && "(Optional)"}</label>
+            <label className="block text-[11px] font-bold text-slate-450 uppercase mb-1">Muqova rasm {isEdit && "(ixtiyoriy)"}</label>
             <input type="file" accept="image/*" onChange={(e) => setPlaylistFile(e.target.files?.[0] || null)}
               className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-indigo-50 file:text-indigo-650 hover:file:bg-indigo-100 cursor-pointer" />
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="h-[32px] px-4 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-750 text-xs font-semibold cursor-pointer">Cancel</button>
-          <button type="submit" className="h-[32px] px-5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer">{isEdit ? "Save Changes" : "Create Playlist"}</button>
+          <button type="button" onClick={onClose} className="h-[32px] px-4 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-750 text-xs font-semibold cursor-pointer">Bekor qilish</button>
+          <button type="submit" className="h-[32px] px-5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer">{isEdit ? "Saqlash" : "Kolleksiya yaratish"}</button>
         </div>
       </form>
     </ModalBackdrop>

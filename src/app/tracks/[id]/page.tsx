@@ -33,7 +33,7 @@ interface BackendCommentResponse {
   createdAt: string;
   musicId: number;
   userId: number;
-  userName: string;
+  userName: string;  
 }
 
 export default function TrackDetailPage() {

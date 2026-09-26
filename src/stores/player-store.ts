@@ -209,7 +209,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   addToQueue: (track) => {
     const { queue, originalQueue } = get();
-    if (queue.some((t) => t.id === track.id)) return; // already in queue
+    if (queue.some((t) => String(t.id) === String(track.id))) return; // already in queue
 
     set({
       queue: [...queue, track],
@@ -219,10 +219,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   removeFromQueue: (trackId) => {
     const { queue, originalQueue, currentIndex, currentTrack } = get();
-    const newQueue = queue.filter((t) => t.id !== trackId);
-    const newOrigQueue = originalQueue.filter((t) => t.id !== trackId);
+    const newQueue = queue.filter((t) => String(t.id) !== String(trackId));
+    const newOrigQueue = originalQueue.filter((t) => String(t.id) !== String(trackId));
 
-    let newIndex = newQueue.findIndex((t) => t.id === currentTrack?.id);
+    let newIndex = newQueue.findIndex((t) => String(t.id) === String(currentTrack?.id));
     if (newIndex === -1 && newQueue.length > 0) {
       newIndex = Math.min(currentIndex, newQueue.length - 1);
     }

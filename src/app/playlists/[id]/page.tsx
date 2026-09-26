@@ -24,8 +24,10 @@ import {
   X,
   Disc,
   Music2,
-  Edit2
+  Edit2,
+  Check
 } from "lucide-react";
+import { collectionService } from "../../../services/collection.service";
 
 interface CommentItem {
   id: string;
@@ -60,6 +62,25 @@ export default function PlaylistDetailPage() {
   const [hoverRating, setHoverRating] = useState<number | null>(null);
 
   const user = useAuthStore((s) => s.user);
+  const [isSaved, setIsSaved] = useState(false);
+
+  useEffect(() => {
+    if (user?.username && playlist?.id) {
+      setIsSaved(collectionService.isCollectionSaved(playlist.id, user.username));
+    }
+  }, [user, playlist]);
+
+  useEffect(() => {
+    const handleSavedChange = () => {
+      if (user?.username && playlist?.id) {
+        setIsSaved(collectionService.isCollectionSaved(playlist.id, user.username));
+      }
+    };
+    window.addEventListener("xitlar:saved-collections-changed", handleSavedChange);
+    return () => {
+      window.removeEventListener("xitlar:saved-collections-changed", handleSavedChange);
+    };
+  }, [user, playlist]);
 
   useEffect(() => {
     if (user) {
@@ -113,6 +134,55 @@ export default function PlaylistDetailPage() {
 
   useEffect(() => {
     fetchPlaylistData();
+
+    const handlePlaylistTracksChange = (e: Event) => {
+      const customEvent = e as CustomEvent<{
+        playlistId: string;
+        track: any;
+        action: "add" | "remove";
+      }>;
+      const { playlistId, track: changedTrack, action } = customEvent.detail || {};
+
+      if (String(playlistId) === String(id) && changedTrack) {
+        setPlaylist((prev) => {
+          if (!prev) return prev;
+          const currentTracks = prev.tracks || [];
+          let updatedTracks: any[];
+          if (action === "add") {
+            if (currentTracks.some((t) => String(t.id) === String(changedTrack.id))) {
+              return prev;
+            }
+            updatedTracks = [...currentTracks, changedTrack];
+          } else {
+            updatedTracks = currentTracks.filter((t) => String(t.id) !== String(changedTrack.id));
+          }
+          return {
+            ...prev,
+            tracks: updatedTracks,
+            trackCount: updatedTracks.length
+          };
+        });
+
+        // Re-fetch in background to ensure total synchronization
+        musicService.getPlaylistById(id).then((freshData) => {
+          if (freshData) {
+            setPlaylist((prev) => {
+              if (!prev) return freshData;
+              return {
+                ...prev,
+                ...freshData,
+                tracks: freshData.tracks || []
+              };
+            });
+          }
+        }).catch(console.error);
+      }
+    };
+
+    window.addEventListener("xitlar:playlist-tracks-changed", handlePlaylistTracksChange);
+    return () => {
+      window.removeEventListener("xitlar:playlist-tracks-changed", handlePlaylistTracksChange);
+    };
   }, [id]);
 
   const openEditModal = () => {
@@ -141,7 +211,7 @@ export default function PlaylistDetailPage() {
     }
     setIsSaving(true);
     try {
-      const cleanTag = editTagName.trim().replace(/^#/, "") || "playlists";
+      // Foydalanuvchi playlistida tag doim "playlist" bo'ladi (o'zgartirish mumkin emas)
       const formData = new FormData();
       formData.append(
         "data",
@@ -149,7 +219,7 @@ export default function PlaylistDetailPage() {
           [
             JSON.stringify({
               title: editTitle.trim(),
-              tagName: cleanTag,
+              tagName: "playlist",
               description: editDescription.trim()
             })
           ],
@@ -193,6 +263,13 @@ export default function PlaylistDetailPage() {
   const handlePlayAll = () => {
     if (playlist && playlist.tracks && playlist.tracks.length > 0) {
       playQueue(playlist.tracks, 0);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("xitlar:set-active-playlist", {
+            detail: { playlistId: String(playlist.id) }
+          })
+        );
+      }
     }
   };
 
@@ -201,6 +278,18 @@ export default function PlaylistDetailPage() {
       navigator.clipboard.writeText(window.location.href);
       alert("Collection link copied to clipboard!");
     }
+  };
+
+  const handleToggleSaveCollection = () => {
+    if (!user) {
+      alert("Iltimos, to'plamni saqlash uchun avval profilingizga kiring.");
+      router.push("/login");
+      return;
+    }
+    if (!playlist) return;
+
+    const nextSaved = collectionService.toggleSaveCollection(playlist, user.username);
+    setIsSaved(nextSaved);
   };
 
   const handleDeletePlaylist = async () => {
@@ -262,6 +351,30 @@ export default function PlaylistDetailPage() {
     }
   };
 
+  // Sorted tracks according to active tab (memoized) - hooks must be called before early returns
+  const rawTracks = useMemo(() => playlist?.tracks || [], [playlist?.tracks]);
+
+  const sortedTracks = useMemo(() => {
+    const list = [...rawTracks];
+    if (activeTab === "popular") {
+      list.sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0));
+    } else if (activeTab === "alphabetical") {
+      list.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+    } else {
+      // by date
+      list.sort((a, b) => {
+        const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
+        const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
+        return dateB - dateA;
+      });
+    }
+    return list;
+  }, [rawTracks, activeTab]);
+
+  const totalDuration = useMemo(() => {
+    return rawTracks.reduce((acc, t) => acc + (t.duration || 0), 0);
+  }, [rawTracks]);
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-2">
@@ -287,30 +400,6 @@ export default function PlaylistDetailPage() {
       </div>
     );
   }
-
-  // Sorted tracks according to active tab (memoized)
-  const rawTracks = useMemo(() => playlist?.tracks || [], [playlist?.tracks]);
-
-  const sortedTracks = useMemo(() => {
-    const list = [...rawTracks];
-    if (activeTab === "popular") {
-      list.sort((a, b) => b.likesCount - a.likesCount);
-    } else if (activeTab === "alphabetical") {
-      list.sort((a, b) => a.title.localeCompare(b.title));
-    } else {
-      // by date
-      list.sort((a, b) => {
-        const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
-        const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
-        return dateB - dateA;
-      });
-    }
-    return list;
-  }, [rawTracks, activeTab]);
-
-  const totalDuration = useMemo(() => {
-    return rawTracks.reduce((acc, t) => acc + (t.duration || 0), 0);
-  }, [rawTracks]);
 
   return (
     <div className="space-y-7 select-none animate-fade-in font-sans">
@@ -486,15 +575,20 @@ export default function PlaylistDetailPage() {
               <span>Listen</span>
             </button>
 
-            {/* Add to Favorites */}
+            {/* Add to Favorites / Save Collection */}
             <button
               type="button"
-              onClick={() => alert(`Added "${playlist.title}" to favorites`)}
-              className="w-9 h-9 rounded-full border border-slate-300/80 hover:border-slate-400 text-slate-700 bg-white flex items-center justify-center transition-colors focus:outline-none shadow-2xs cursor-pointer"
-              aria-label="Add to favorites"
-              title="Add to favorites"
+              onClick={handleToggleSaveCollection}
+              className={cn(
+                "w-9 h-9 rounded-full border flex items-center justify-center transition-all focus:outline-none shadow-2xs cursor-pointer",
+                isSaved
+                  ? "bg-[#365377] border-[#365377] text-white hover:bg-[#2d4665]"
+                  : "bg-white border-slate-300/80 hover:border-slate-400 text-slate-700"
+              )}
+              aria-label={isSaved ? "Saved to collections" : "Save to collections"}
+              title={isSaved ? "Saved to collections" : "Save to collections"}
             >
-              <Plus className="w-4 h-4" />
+              {isSaved ? <Check className="w-4 h-4 stroke-[2.5]" /> : <Plus className="w-4 h-4" />}
             </button>
 
             {/* Reload / Refresh */}
@@ -576,9 +670,10 @@ export default function PlaylistDetailPage() {
         )}
       </section>
       
-      {rawTracks.length > 0 &&
+      {rawTracks.length > 20 &&
         (() => {
-          const totalPages = 95;
+          const totalPages = Math.ceil(rawTracks.length / 20);
+          if (totalPages <= 1) return null;
           let start = Math.max(1, currentPage - 2);
           const end = Math.min(totalPages, start + 4);
 
@@ -777,18 +872,11 @@ export default function PlaylistDetailPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-450 uppercase mb-1">Tag Name</label>
-                <div className="relative flex items-center">
-                  <span className="absolute left-3 text-xs font-bold text-slate-400">#</span>
-                  <input
-                    type="text"
-                    value={editTagName}
-                    onChange={(e) => setEditTagName(e.target.value)}
-                    className="w-full h-[36px] pl-7 pr-3 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:bg-white focus:border-indigo-500 transition-all text-slate-800 font-semibold"
-                    placeholder="e.g. retro"
-                  />
-                </div>
+              {/* Tag Name locked for user playlists */}
+              <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Tag:</span>
+                <span className="text-xs font-semibold text-slate-500">#playlist</span>
+                <span className="ml-auto text-[10px] text-slate-400 italic">o&apos;zgartirib bo&apos;lmaydi</span>
               </div>
 
               <div>

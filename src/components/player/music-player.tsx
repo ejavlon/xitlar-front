@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePlayerStore } from "../../stores/player-store";
 import { useAuthStore } from "../../stores/auth-store";
@@ -59,16 +59,20 @@ export function MusicPlayer() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [playerPlaylists, setPlayerPlaylists] = useState<Playlist[]>([]);
   const [playerArtists, setPlayerArtists] = useState<Artist[]>([]);
+  const [currentPlaylistId, setCurrentPlaylistId] = useState<string | null>(null);
+  const currentPlaylistIdRef = useRef<string | null>(null);
+  currentPlaylistIdRef.current = currentPlaylistId;
 
   // Load playlists and followed artists dynamically
   useEffect(() => {
     const loadPlayerData = async () => {
       try {
-        const [playlistsData, artistsData] = await Promise.all([
-          musicService.getPlaylists(),
+        const [userPlaylistsData, collectionsData, artistsData] = await Promise.all([
+          isAuthenticated ? musicService.getUserPlaylists() : Promise.resolve([]),
+          musicService.getCollections(),
           isAuthenticated ? artistService.getFollowedArtists() : Promise.resolve([])
         ]);
-        setPlayerPlaylists(playlistsData || []);
+        setPlayerPlaylists([...(userPlaylistsData || []), ...(collectionsData || [])]);
         setPlayerArtists(artistsData || []);
       } catch (err) {
         console.error("Failed to load player panel data:", err);
@@ -89,9 +93,82 @@ export function MusicPlayer() {
       }
     };
 
+    const handlePlaylistsChange = async () => {
+      try {
+        const [userPlaylistsData, collectionsData] = await Promise.all([
+          isAuthenticated ? musicService.getUserPlaylists() : Promise.resolve([]),
+          musicService.getCollections()
+        ]);
+        setPlayerPlaylists([...(userPlaylistsData || []), ...(collectionsData || [])]);
+      } catch (err) {
+        console.error("Failed to refresh playlists in player:", err);
+      }
+    };
+
+    const handlePlaylistTracksChange = async (e: Event) => {
+      const customEvent = e as CustomEvent<{
+        playlistId: string;
+        track: any;
+        action: "add" | "remove";
+      }>;
+      const { playlistId, track: changedTrack, action } = customEvent.detail || {};
+
+      if (currentPlaylistIdRef.current && String(playlistId) === String(currentPlaylistIdRef.current) && changedTrack) {
+        if (action === "add") {
+          const currentQueue = usePlayerStore.getState().queue;
+          if (!currentQueue.some((t) => String(t.id) === String(changedTrack.id))) {
+            if (currentQueue.length === 0) {
+              usePlayerStore.setState({
+                queue: [changedTrack],
+                originalQueue: [changedTrack],
+                currentIndex: 0,
+                currentTrack: changedTrack,
+                isPlaying: false
+              });
+            } else {
+              usePlayerStore.getState().addToQueue(changedTrack);
+            }
+          }
+        } else if (action === "remove") {
+          usePlayerStore.getState().removeFromQueue(changedTrack.id);
+        }
+
+        // Background sync to ensure exact order and attributes from backend
+        musicService.getPlaylistById(playlistId).then((fresh) => {
+          if (fresh && fresh.tracks && currentPlaylistIdRef.current === String(playlistId)) {
+            const currentTrackId = usePlayerStore.getState().currentTrack?.id;
+            const newIndex = fresh.tracks.findIndex((t) => String(t.id) === String(currentTrackId));
+            usePlayerStore.setState({
+              queue: fresh.tracks,
+              originalQueue: fresh.tracks,
+              currentIndex: newIndex !== -1 ? newIndex : usePlayerStore.getState().currentIndex,
+              currentTrack: newIndex !== -1 ? fresh.tracks[newIndex] : usePlayerStore.getState().currentTrack
+            });
+          }
+        }).catch(console.error);
+      }
+
+      handlePlaylistsChange();
+    };
+
+    const handleSetActivePlaylist = (e: Event) => {
+      const customEvent = e as CustomEvent<{ playlistId: string }>;
+      if (customEvent.detail?.playlistId) {
+        const pId = String(customEvent.detail.playlistId);
+        setCurrentPlaylistId(pId);
+        currentPlaylistIdRef.current = pId;
+      }
+    };
+
     window.addEventListener("xitlar:artist-followed-changed", handleFollowChange);
+    window.addEventListener("xitlar:playlists-changed", handlePlaylistsChange);
+    window.addEventListener("xitlar:playlist-tracks-changed", handlePlaylistTracksChange);
+    window.addEventListener("xitlar:set-active-playlist", handleSetActivePlaylist);
     return () => {
       window.removeEventListener("xitlar:artist-followed-changed", handleFollowChange);
+      window.removeEventListener("xitlar:playlists-changed", handlePlaylistsChange);
+      window.removeEventListener("xitlar:playlist-tracks-changed", handlePlaylistTracksChange);
+      window.removeEventListener("xitlar:set-active-playlist", handleSetActivePlaylist);
     };
   }, [isAuthenticated]);
 
@@ -134,20 +211,30 @@ export function MusicPlayer() {
       <MiniPlayer onOpenQueue={() => setQueueModalOpen(true)} />
 
       {/* QUEUE / PLAYLIST FULL OVERLAY (Positioned from Top down to Bottom Player Bar) */}
-      {queueModalOpen && currentTrack && (
+      {queueModalOpen && (
         <div className="fixed top-0 bottom-[66px] left-0 right-0 mx-auto w-full max-w-[1100px] z-[45] flex flex-col bg-white shadow-2xl border-x border-slate-200 animate-fade-in select-none">
           <div className="h-11 border-b border-slate-100 px-4 sm:px-6 flex items-center justify-between bg-white shrink-0">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-slate-100 shadow-2xs">
-                {currentTrack.coverUrl ? (
-                  <img src={currentTrack.coverUrl} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-[#365377]" />
-                )}
-              </div>
-              <h2 className="text-xs sm:text-sm font-semibold text-slate-800 truncate">
-                {currentTrack.artist.name} — {currentTrack.title}
-              </h2>
+              {currentTrack ? (
+                <>
+                  <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-slate-100 shadow-2xs">
+                    {currentTrack.coverUrl ? (
+                      <img src={currentTrack.coverUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-[#365377]" />
+                    )}
+                  </div>
+                  <h2 className="text-xs sm:text-sm font-semibold text-slate-800 truncate">
+                    {currentTrack.artist?.name || "Unknown"} — {currentTrack.title}
+                  </h2>
+                </>
+              ) : (
+                <h2 className="text-xs sm:text-sm font-semibold text-slate-800 truncate">
+                  {currentPlaylistId
+                    ? playerPlaylists.find((p) => String(p.id) === String(currentPlaylistId))?.title || "Playlist"
+                    : "Queue & Playlists"}
+                </h2>
+              )}
             </div>
             <button
               type="button"
@@ -163,9 +250,21 @@ export function MusicPlayer() {
           <div className="flex-1 flex overflow-hidden">
             {/* Left: Tracks List */}
             <div className="flex-1 overflow-y-auto p-2 sm:p-4 divide-y divide-slate-100">
+              {currentPlaylistId && (
+                <div className="pb-2.5 mb-2 border-b border-slate-100 flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800">
+                    {playerPlaylists.find((p) => String(p.id) === String(currentPlaylistId))?.title || "Playlist"}
+                  </span>
+                  <span className="text-[11px] font-semibold text-[#365377] bg-slate-100 px-2 py-0.5 rounded-full">
+                    {queue.length} track{queue.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+              )}
               {queue.length === 0 ? (
                 <div className="py-20 text-center text-sm text-slate-400">
-                  Queue is empty. Click on any track to start listening.
+                  {currentPlaylistId
+                    ? "This playlist is empty. Add songs to it using '+' button."
+                    : "Queue is empty. Click on any track to start listening."}
                 </div>
               ) : (
                 queue.map((track, idx) => (
@@ -196,19 +295,44 @@ export function MusicPlayer() {
                 </div>
                 {openAccordion === "playlists" && (
                   <div className="pb-3 pl-2 space-y-1.5 animate-fade-in text-xs text-slate-600">
-                    {playerPlaylists.filter(p => !p.isCollection).map((pl) => (
-                      <div
-                        key={pl.id}
-                        onClick={() => {
-                          if (pl.tracks && pl.tracks.length > 0) {
-                            playQueue(pl.tracks, 0, true);
-                          }
-                        }}
-                        className="py-1 px-2 rounded hover:bg-slate-50 cursor-pointer truncate hover:text-slate-900"
-                      >
-                        {pl.title}
+                    {playerPlaylists.filter(p => !p.isCollection).length === 0 ? (
+                      <div className="py-1 px-2 text-[11px] text-slate-400 italic">
+                        {isAuthenticated ? "No playlists yet" : "Sign in to see playlists"}
                       </div>
-                    ))}
+                    ) : (
+                      playerPlaylists.filter(p => !p.isCollection).map((pl) => (
+                        <div
+                          key={pl.id}
+                          onClick={async () => {
+                            try {
+                              const plId = String(pl.id);
+                              setCurrentPlaylistId(plId);
+                              currentPlaylistIdRef.current = plId;
+                              const full = await musicService.getPlaylistById(pl.id);
+                              if (full && full.tracks && full.tracks.length > 0) {
+                                playQueue(full.tracks, 0, true);
+                              } else {
+                                usePlayerStore.setState({
+                                  queue: [],
+                                  originalQueue: [],
+                                  currentIndex: -1
+                                });
+                              }
+                            } catch (err) {
+                              console.error("Failed to load and play playlist tracks:", err);
+                            }
+                          }}
+                          className={cn(
+                            "py-1 px-2 rounded cursor-pointer truncate transition-colors",
+                            currentPlaylistId === String(pl.id)
+                              ? "bg-slate-100 font-semibold text-[#365377]"
+                              : "hover:bg-slate-50 text-slate-600 hover:text-slate-900"
+                          )}
+                        >
+                          {pl.title}
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
               </div>
@@ -239,6 +363,8 @@ export function MusicPlayer() {
                           key={artist.id}
                           onClick={async () => {
                             try {
+                              setCurrentPlaylistId(null);
+                              currentPlaylistIdRef.current = null;
                               const artistTracks = await artistService.getTracksByArtist(artist.id);
                               if (artistTracks.length > 0) {
                                 playQueue(artistTracks, 0, true);
@@ -273,19 +399,44 @@ export function MusicPlayer() {
                 </div>
                 {openAccordion === "collections" && (
                   <div className="pb-3 pl-2 space-y-1.5 animate-fade-in text-xs text-slate-600">
-                    {playerPlaylists.filter(p => p.isCollection).map((coll) => (
-                      <div
-                        key={coll.id}
-                        onClick={() => {
-                          if (coll.tracks && coll.tracks.length > 0) {
-                            playQueue(coll.tracks, 0, true);
-                          }
-                        }}
-                        className="py-1 px-2 rounded hover:bg-slate-50 cursor-pointer truncate hover:text-slate-900"
-                      >
-                        {coll.title}
+                    {playerPlaylists.filter(p => p.isCollection).length === 0 ? (
+                      <div className="py-1 px-2 text-[11px] text-slate-400 italic">
+                        No collections available
                       </div>
-                    ))}
+                    ) : (
+                      playerPlaylists.filter(p => p.isCollection).map((coll) => (
+                        <div
+                          key={coll.id}
+                          onClick={async () => {
+                            try {
+                              const collId = String(coll.id);
+                              setCurrentPlaylistId(collId);
+                              currentPlaylistIdRef.current = collId;
+                              const full = await musicService.getPlaylistById(coll.id);
+                              if (full && full.tracks && full.tracks.length > 0) {
+                                playQueue(full.tracks, 0, true);
+                              } else {
+                                usePlayerStore.setState({
+                                  queue: [],
+                                  originalQueue: [],
+                                  currentIndex: -1
+                                });
+                              }
+                            } catch (err) {
+                              console.error("Failed to load and play collection tracks:", err);
+                            }
+                          }}
+                          className={cn(
+                            "py-1 px-2 rounded cursor-pointer truncate transition-colors",
+                            currentPlaylistId === String(coll.id)
+                              ? "bg-slate-100 font-semibold text-[#365377]"
+                              : "hover:bg-slate-50 text-slate-600 hover:text-slate-900"
+                          )}
+                        >
+                          {coll.title}
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
               </div>
@@ -393,15 +544,12 @@ export function MusicPlayer() {
             {/* Queue / Playlist Overlay Toggle Button (Active when open) */}
             <button
               type="button"
-              onClick={hasTrack ? () => setQueueModalOpen(!queueModalOpen) : undefined}
-              disabled={!hasTrack}
+              onClick={() => setQueueModalOpen(!queueModalOpen)}
               className={cn(
-                "w-7 h-7 flex items-center justify-center shrink-0 rounded transition-colors focus:outline-none",
-                !hasTrack
-                  ? "text-slate-300 pointer-events-none cursor-not-allowed"
-                  : queueModalOpen
-                    ? "bg-[#365377] text-white shadow-xs cursor-pointer"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+                "w-7 h-7 flex items-center justify-center shrink-0 rounded transition-colors focus:outline-none cursor-pointer",
+                queueModalOpen
+                  ? "bg-[#365377] text-white shadow-xs"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
               )}
               aria-label="Toggle playlist queue overlay"
             >

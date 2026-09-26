@@ -1,19 +1,21 @@
-// Server Component — pre-fetches playlists on server
+// Server Component — foydalanuvchi playlists (isCollection=false)
 import type { Metadata } from "next";
 import { musicService } from "../../services/music.service";
 import { PlaylistsClient } from "./_components/playlists-client";
 
 export const metadata: Metadata = {
-  title: "Playlists & Compilations | Xitlar.net",
-  description: "Curated playlists for every mood and moment"
+  title: "Playlists | Xitlar.net",
+  description: "Foydalanuvchilar tomonidan yaratilgan shaxsiy playlist to'plamlari"
 };
 
 export default async function PlaylistsPage() {
-  const playlists = await musicService.getPlaylists();
+  // Barcha playlistlarni olamiz va isCollection=false larini filtrlaymiz
+  const allPlaylists = await musicService.getPlaylists();
+  const userPlaylists = allPlaylists.filter((p) => !p.isCollection);
 
   return (
     <div className="space-y-6 select-none">
-      <PlaylistsClient initialPlaylists={playlists} />
+      <PlaylistsClient initialPlaylists={userPlaylists} />
     </div>
   );
 }

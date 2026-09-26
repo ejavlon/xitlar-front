@@ -99,7 +99,7 @@ export function Sidebar({ onClose }: SidebarProps) {
               >
                 <div
                   className={cn(
-                    "w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-transform group-hover:scale-105",
+                    "w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-transform",
                     isActive
                       ? "bg-[#365377] text-white shadow-2xs"
                       : cn(item.badgeBg, item.badgeText, item.badgeBgHover)

@@ -143,6 +143,7 @@ export default function AdminDashboard() {
   const [selectedPlaylist, setSelectedPlaylist] = useState<PlaylistResponse | null>(null);
   const [playlistTitle, setPlaylistTitle] = useState("");
   const [playlistDescription, setPlaylistDescription] = useState("");
+  const [playlistTagName, setPlaylistTagName] = useState("");
   const [playlistFile, setPlaylistFile] = useState<File | null>(null);
   const [showPlaylistDetailModal, setShowPlaylistDetailModal] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -359,18 +360,18 @@ export default function AdminDashboard() {
   };
 
   // Playlists
-  const handleCreatePlaylist = () => { setIsEditPlaylist(false); setSelectedPlaylist(null); setPlaylistTitle(""); setPlaylistDescription(""); setPlaylistFile(null); setShowPlaylistModal(true); };
-  const handleEditPlaylist = (pl: PlaylistResponse) => { setIsEditPlaylist(true); setSelectedPlaylist(pl); setPlaylistTitle(pl.title); setPlaylistDescription(pl.description || ""); setPlaylistFile(null); setShowPlaylistModal(true); };
+  const handleCreatePlaylist = () => { setIsEditPlaylist(false); setSelectedPlaylist(null); setPlaylistTitle(""); setPlaylistDescription(""); setPlaylistTagName(""); setPlaylistFile(null); setShowPlaylistModal(true); };
+  const handleEditPlaylist = (pl: PlaylistResponse) => { setIsEditPlaylist(true); setSelectedPlaylist(pl); setPlaylistTitle(pl.title); setPlaylistDescription(pl.description || ""); setPlaylistTagName(pl.tagName || ""); setPlaylistFile(null); setShowPlaylistModal(true); };
   const submitPlaylistForm = async (e: React.FormEvent) => {
     e.preventDefault(); setErrorMsg(""); setSuccessMsg("");
     try {
       const formData = new FormData();
-      formData.append("data", new Blob([JSON.stringify({ title: playlistTitle, description: playlistDescription, isCollection: true })], { type: "application/json" }));
+      formData.append("data", new Blob([JSON.stringify({ title: playlistTitle, description: playlistDescription, tagName: playlistTagName || undefined, isCollection: true })], { type: "application/json" }));
       if (playlistFile) formData.append("file", playlistFile);
-      if (isEditPlaylist && selectedPlaylist) { await api.put(`/api/v1/playlists/${selectedPlaylist.id}`, formData); setSuccessMsg("Playlist details successfully updated!"); }
-      else { await api.post("/api/v1/playlists", formData); setSuccessMsg("New Playlist successfully created!"); }
+      if (isEditPlaylist && selectedPlaylist) { await api.put(`/api/v1/playlists/${selectedPlaylist.id}`, formData); setSuccessMsg("Kolleksiya muvaffaqiyatli yangilandi!"); }
+      else { await api.post("/api/v1/playlists", formData); setSuccessMsg("Yangi kolleksiya muvaffaqiyatli yaratildi!"); }
       setShowPlaylistModal(false); loadData();
-    } catch (err: any) { setErrorMsg(err.message || "Failed to submit playlist form."); }
+    } catch (err: any) { setErrorMsg(err.message || "Kolleksiya formasi yuborishda xatolik."); }
   };
   const handleDeletePlaylist = async (id: number, title: string) => {
     if (!confirm(`Are you sure you want to permanently delete playlist "${title}"?`)) return;
@@ -602,7 +603,7 @@ export default function AdminDashboard() {
           { key: "moderators", label: "Moderators", icon: <Shield className="w-4 h-4" />, adminOnly: true },
           { key: "artists", label: "Artists", icon: <Mic2 className="w-4 h-4" />, adminOnly: false },
           { key: "tracks", label: "Tracks", icon: <Music className="w-4 h-4" />, adminOnly: false },
-          { key: "playlists", label: "Playlists", icon: <ListMusic className="w-4 h-4" />, adminOnly: false },
+          { key: "playlists", label: "Collections", icon: <ListMusic className="w-4 h-4" />, adminOnly: false },
           { key: "upload", label: "Bulk Upload", icon: <UploadCloud className="w-4 h-4" />, adminOnly: false },
           { key: "lyrics", label: "Lyrics", icon: <FileText className="w-4 h-4" />, adminOnly: false },
           { key: "comments", label: "Comments", icon: <MessageSquare className="w-4 h-4" />, adminOnly: false },
@@ -704,8 +705,9 @@ export default function AdminDashboard() {
         onClose={() => setShowTrackDetailsModal(false)} />
 
       <PlaylistModal show={showPlaylistModal} isEdit={isEditPlaylist}
-        playlistTitle={playlistTitle} playlistDescription={playlistDescription}
-        setPlaylistTitle={setPlaylistTitle} setPlaylistDescription={setPlaylistDescription} setPlaylistFile={setPlaylistFile}
+        playlistTitle={playlistTitle} playlistDescription={playlistDescription} playlistTagName={playlistTagName}
+        setPlaylistTitle={setPlaylistTitle} setPlaylistDescription={setPlaylistDescription}
+        setPlaylistTagName={setPlaylistTagName} setPlaylistFile={setPlaylistFile}
         onClose={() => setShowPlaylistModal(false)} onSubmit={submitPlaylistForm} />
 
       <PlaylistDetailModal show={showPlaylistDetailModal} selectedPlaylist={selectedPlaylist}

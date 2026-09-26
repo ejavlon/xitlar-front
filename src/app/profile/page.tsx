@@ -10,6 +10,7 @@ import { Playlist } from "@/types/playlist";
 import { userService } from "@/services/user.service";
 import { musicService } from "@/services/music.service";
 import { artistService } from "@/services/artist.service";
+import { collectionService } from "@/services/collection.service";
 import { TrackRow } from "@/components/music/track-row";
 import { ArtistGrid } from "@/components/music/artist-grid";
 import { PlaylistGrid } from "@/components/music/playlist-grid";
@@ -79,18 +80,17 @@ export default function ProfilePage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [userData, trackData, artistData, userPlaylistsData, collectionsData, likedTracksData] = await Promise.all([
+        const [userData, trackData, artistData, userPlaylistsData, likedTracksData] = await Promise.all([
           userService.getCurrentUser(),
           musicService.getPopularTracks(),
           artistService.getFollowedArtists(),
           musicService.getUserPlaylists(),
-          musicService.getCollections(),
           musicService.getLikedTracks(),
         ]);
         setCurrentUser(userData);
         setTracks(trackData);
         setArtists(artistData);
-        setPlaylists([...(userPlaylistsData || []), ...(collectionsData || [])]);
+        setPlaylists(userPlaylistsData || []);
         setLikedTracks(likedTracksData);
       } catch (err) {
         console.error("Error loading profile data:", err);
@@ -109,18 +109,60 @@ export default function ProfilePage() {
       }
     };
 
+    const handlePlaylistsChange = async () => {
+      try {
+        const userPlaylistsData = await musicService.getUserPlaylists();
+        setPlaylists(userPlaylistsData || []);
+      } catch (err) {
+        console.error("Error refreshing playlists in profile:", err);
+      }
+    };
+
     window.addEventListener("xitlar:artist-followed-changed", handleFollowChange);
+    window.addEventListener("xitlar:playlists-changed", handlePlaylistsChange);
+    window.addEventListener("xitlar:playlist-tracks-changed", handlePlaylistsChange);
     return () => {
       window.removeEventListener("xitlar:artist-followed-changed", handleFollowChange);
+      window.removeEventListener("xitlar:playlists-changed", handlePlaylistsChange);
+      window.removeEventListener("xitlar:playlist-tracks-changed", handlePlaylistsChange);
     };
   }, [isInitialized, isAuthenticated, router]);
 
   const userName = currentUser ? (currentUser.name || `${currentUser.firstName || ""} ${currentUser.lastName || ""}`.trim() || currentUser.username) : "Guest";
   const userEmail = currentUser?.username || "";
 
-  // Filtered collections / playlists
+  // Filtered personal playlists (not collections)
   const userPlaylists = playlists.filter((p) => !p.isCollection);
-  const userCollections = playlists.filter((p) => p.isCollection);
+
+  // Saved collections state & sync
+  const [savedCollections, setSavedCollections] = useState<Playlist[]>([]);
+
+  useEffect(() => {
+    const loadSavedCollections = () => {
+      if (typeof window !== "undefined" && currentUser?.username) {
+        const list = collectionService.getSavedCollections(currentUser.username);
+        // Sync with fresh collection details from backend
+        musicService.getCollections().then((allCols) => {
+          const freshList = list.map((saved) => {
+            const found = allCols.find((c) => String(c.id) === String(saved.id));
+            return found || saved;
+          });
+          setSavedCollections(freshList);
+        }).catch(() => {
+          setSavedCollections(list);
+        });
+      } else {
+        setSavedCollections([]);
+      }
+    };
+
+    loadSavedCollections();
+
+    window.addEventListener("xitlar:saved-collections-changed", loadSavedCollections);
+    return () => {
+      window.removeEventListener("xitlar:saved-collections-changed", loadSavedCollections);
+    };
+  }, [currentUser]);
 
   // User comments state and load effect
   const [userComments, setUserComments] = useState<{ id: string; targetName: string; text: string; date: string }[]>([]);
@@ -283,7 +325,7 @@ export default function ProfilePage() {
           {activeTab === "collections" && (
             <div className="space-y-4">
               <PlaylistGrid
-                playlists={userCollections}
+                playlists={savedCollections}
                 fallbackText="No collections saved yet."
               />
             </div>
