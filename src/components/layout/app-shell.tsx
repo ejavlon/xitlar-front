@@ -88,7 +88,7 @@ export function AppShell({ children }: AppShellProps) {
         )}
 
         {/* 4. Persistent Global Music Player */}
-        <div className="relative w-full z-45">
+        <div className="relative w-full">
           <MusicPlayer />
         </div>
 

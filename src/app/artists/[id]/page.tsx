@@ -56,6 +56,9 @@ export default function ArtistDetailPage() {
 
   const [hoveredStar, setHoveredStar] = useState<number | null>(null);
   const [votingLoading, setVotingLoading] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+
+  const user = useAuthStore((s) => s.user);
 
   const handleVote = async (rating: number) => {
     if (!user) {
@@ -76,7 +79,23 @@ export default function ArtistDetailPage() {
     }
   };
 
-  const user = useAuthStore((s) => s.user);
+  const handleToggleFollow = async () => {
+    if (!user) {
+      alert("Please sign in to follow artists.");
+      return;
+    }
+    if (!artist || followLoading) return;
+    try {
+      setFollowLoading(true);
+      const updated = await artistService.toggleFollowArtist(artist.id);
+      setIsFollowing(updated.isFollowed ?? !isFollowing);
+      window.dispatchEvent(new CustomEvent("xitlar:artist-followed-changed"));
+    } catch (err) {
+      console.error("Failed to toggle follow artist:", err);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -116,6 +135,9 @@ export default function ArtistDetailPage() {
         ]);
 
         setArtist(artistData);
+        if (artistData) {
+          setIsFollowing(artistData.isFollowed ?? false);
+        }
         setSimilarArtists(similarData);
         setTracks(tracksData);
         setCurrentPage(1);
@@ -342,27 +364,38 @@ export default function ArtistDetailPage() {
               <span>Listen</span>
             </button>
 
-            {/* Add to Favorites */}
+            {/* Add to Favorites / Follow */}
             <button
               type="button"
-              onClick={() => alert(`Added ${artist.name} to favorites`)}
-              className="w-8 h-8 rounded-full border border-slate-300 hover:border-slate-400 text-slate-600 flex items-center justify-center transition-colors focus:outline-none"
-              aria-label="Add to favorites"
+              onClick={handleToggleFollow}
+              disabled={followLoading}
+              className={cn(
+                "w-8 h-8 rounded-full border flex items-center justify-center transition-colors focus:outline-none",
+                isFollowing
+                  ? "bg-[#365377]/10 border-[#365377] text-[#365377]"
+                  : "border-slate-300 hover:border-slate-400 text-slate-600",
+                followLoading && "opacity-50 cursor-wait"
+              )}
+              aria-label={isFollowing ? "Following" : "Add to favorites"}
+              title={isFollowing ? "Following" : "Follow artist"}
             >
-              <Plus className="w-4 h-4" />
+              <Plus className={cn("w-4 h-4", isFollowing && "rotate-45 transition-transform")} />
             </button>
 
-            {/* Follow / Verified checkmark button */}
+            {/* Follow / Verified checkmark button (Button 1 in screenshot) */}
             <button
               type="button"
-              onClick={() => setIsFollowing(!isFollowing)}
+              onClick={handleToggleFollow}
+              disabled={followLoading}
               className={cn(
                 "w-8 h-8 rounded-full border flex items-center justify-center transition-colors focus:outline-none",
                 isFollowing
                   ? "bg-[#365377] border-[#365377] text-white"
-                  : "border-slate-300 hover:border-slate-400 text-slate-600"
+                  : "border-slate-300 hover:border-slate-400 text-slate-600",
+                followLoading && "opacity-50 cursor-wait"
               )}
               aria-label={isFollowing ? "Following" : "Follow"}
+              title={isFollowing ? "Following" : "Follow artist"}
             >
               <Check className="w-4 h-4" />
             </button>

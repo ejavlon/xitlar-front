@@ -82,7 +82,7 @@ export default function ProfilePage() {
         const [userData, trackData, artistData, userPlaylistsData, collectionsData, likedTracksData] = await Promise.all([
           userService.getCurrentUser(),
           musicService.getPopularTracks(),
-          artistService.getArtists(),
+          artistService.getFollowedArtists(),
           musicService.getUserPlaylists(),
           musicService.getCollections(),
           musicService.getLikedTracks(),
@@ -99,6 +99,20 @@ export default function ProfilePage() {
       }
     };
     fetchData();
+
+    const handleFollowChange = async () => {
+      try {
+        const followed = await artistService.getFollowedArtists();
+        setArtists(followed);
+      } catch (err) {
+        console.error("Error refreshing followed artists:", err);
+      }
+    };
+
+    window.addEventListener("xitlar:artist-followed-changed", handleFollowChange);
+    return () => {
+      window.removeEventListener("xitlar:artist-followed-changed", handleFollowChange);
+    };
   }, [isInitialized, isAuthenticated, router]);
 
   const userName = currentUser ? (currentUser.name || `${currentUser.firstName || ""} ${currentUser.lastName || ""}`.trim() || currentUser.username) : "Guest";

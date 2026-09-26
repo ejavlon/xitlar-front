@@ -50,7 +50,7 @@ export function EqualizerModal() {
   return (
     <div
       ref={modalRef}
-      className="fixed bottom-[calc(var(--player-height)+16px)] right-2 sm:right-6 lg:right-10 z-50 w-[340px] sm:w-[460px] bg-[#365377] text-white rounded-xl shadow-2xl border border-[#2c4768] overflow-visible animate-fade-in select-none"
+      className="fixed bottom-[calc(var(--player-height)+16px)] right-2 sm:right-6 lg:right-10 z-[60] w-[340px] sm:w-[460px] bg-[#365377] text-white rounded-xl shadow-2xl border border-[#2c4768] overflow-visible animate-fade-in select-none"
       role="dialog"
       aria-label="10-Band Equalizer"
     >

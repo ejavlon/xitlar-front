@@ -6,6 +6,8 @@ import { BackendArtistResponse } from "../types/backend";
 
 export interface ArtistRepository {
   getArtists(): Promise<Artist[]>;
+  getFollowedArtists(): Promise<Artist[]>;
+  toggleFollowArtist(artistId: string): Promise<Artist>;
   getArtistById(id: string): Promise<Artist | null>;
   getTracksByArtist(artistId: string): Promise<Track[]>;
   searchArtists(query: string): Promise<Artist[]>;
@@ -23,6 +25,7 @@ export function mapArtistToArtist(artist: BackendArtistResponse): Artist {
     rating: artist.averageRating,
     votesCount: artist.voteCount,
     userRating: artist.userRating,
+    isFollowed: artist.isFollowed ?? false,
     listenersCount: undefined
   };
 }
@@ -32,6 +35,20 @@ export class ApiArtistRepository implements ArtistRepository {
     const response = await api.get<{ content: BackendArtistResponse[] }>("/api/v1/artists?page=0&size=50");
     const content = response.content || [];
     return content.map(mapArtistToArtist);
+  }
+
+  async getFollowedArtists(): Promise<Artist[]> {
+    try {
+      const data = await api.get<BackendArtistResponse[]>("/api/v1/artists/followed");
+      return Array.isArray(data) ? data.map(mapArtistToArtist) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  async toggleFollowArtist(artistId: string): Promise<Artist> {
+    const data = await api.post<BackendArtistResponse>(`/api/v1/artists/${artistId}/follow`);
+    return mapArtistToArtist(data);
   }
 
   async getArtistById(id: string): Promise<Artist | null> {

@@ -8,6 +8,7 @@ export interface Artist {
   rating?: number;
   votesCount?: number;
   userRating?: number;
+  isFollowed?: boolean;
   bio?: string;
   listenersCount?: number;
 }

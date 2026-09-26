@@ -15,6 +15,14 @@ export class ArtistService {
     return this.repository.getArtists();
   }
 
+  async getFollowedArtists(): Promise<Artist[]> {
+    return this.repository.getFollowedArtists();
+  }
+
+  async toggleFollowArtist(artistId: string): Promise<Artist> {
+    return this.repository.toggleFollowArtist(artistId);
+  }
+
   async getArtistById(id: string): Promise<Artist | null> {
     return this.repository.getArtistById(id);
   }

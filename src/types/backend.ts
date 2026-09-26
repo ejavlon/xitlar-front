@@ -23,6 +23,7 @@ export interface BackendArtistResponse {
   averageRating?: number;
   image?: BackendImageResponse;
   userRating?: number;
+  isFollowed?: boolean;
 }
 
 export interface BackendAlbumResponse {

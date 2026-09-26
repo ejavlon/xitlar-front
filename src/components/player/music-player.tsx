@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePlayerStore } from "../../stores/player-store";
+import { useAuthStore } from "../../stores/auth-store";
 import { useAudioPlayer } from "../../hooks/use-audio-player";
 import { usePlayerInit } from "../../hooks/use-player-init";
 import { formatDuration } from "../../lib/formatters";
@@ -55,16 +56,17 @@ export function MusicPlayer() {
   const [queueModalOpen, setQueueModalOpen] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [playerPlaylists, setPlayerPlaylists] = useState<Playlist[]>([]);
   const [playerArtists, setPlayerArtists] = useState<Artist[]>([]);
 
-  // Load playlists and artists dynamically
+  // Load playlists and followed artists dynamically
   useEffect(() => {
     const loadPlayerData = async () => {
       try {
         const [playlistsData, artistsData] = await Promise.all([
           musicService.getPlaylists(),
-          artistService.getArtists()
+          isAuthenticated ? artistService.getFollowedArtists() : Promise.resolve([])
         ]);
         setPlayerPlaylists(playlistsData || []);
         setPlayerArtists(artistsData || []);
@@ -73,7 +75,25 @@ export function MusicPlayer() {
       }
     };
     loadPlayerData();
-  }, []);
+
+    const handleFollowChange = async () => {
+      if (!isAuthenticated) {
+        setPlayerArtists([]);
+        return;
+      }
+      try {
+        const artistsData = await artistService.getFollowedArtists();
+        setPlayerArtists(artistsData || []);
+      } catch (err) {
+        console.error("Failed to refresh followed artists in player:", err);
+      }
+    };
+
+    window.addEventListener("xitlar:artist-followed-changed", handleFollowChange);
+    return () => {
+      window.removeEventListener("xitlar:artist-followed-changed", handleFollowChange);
+    };
+  }, [isAuthenticated]);
 
   // Sync liked state with track change
   useEffect(() => {
@@ -113,6 +133,168 @@ export function MusicPlayer() {
       {/* MOBILE MINI PLAYER (Mobile / Tablet < 1024px) */}
       <MiniPlayer onOpenQueue={() => setQueueModalOpen(true)} />
 
+      {/* QUEUE / PLAYLIST FULL OVERLAY (Positioned from Top down to Bottom Player Bar) */}
+      {queueModalOpen && currentTrack && (
+        <div className="fixed top-0 bottom-[66px] left-0 right-0 mx-auto w-full max-w-[1100px] z-[45] flex flex-col bg-white shadow-2xl border-x border-slate-200 animate-fade-in select-none">
+          <div className="h-11 border-b border-slate-100 px-4 sm:px-6 flex items-center justify-between bg-white shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-slate-100 shadow-2xs">
+                {currentTrack.coverUrl ? (
+                  <img src={currentTrack.coverUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-[#365377]" />
+                )}
+              </div>
+              <h2 className="text-xs sm:text-sm font-semibold text-slate-800 truncate">
+                {currentTrack.artist.name} — {currentTrack.title}
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setQueueModalOpen(false)}
+              className="p-1 text-slate-400 hover:text-slate-800 rounded transition-colors focus:outline-none"
+              aria-label="Close Playlist View"
+            >
+              <X className="w-4.5 h-4.5" />
+            </button>
+          </div>
+
+          {/* Overlay Content Area: Left Queue Tracks + Right Category Accordions */}
+          <div className="flex-1 flex overflow-hidden">
+            {/* Left: Tracks List */}
+            <div className="flex-1 overflow-y-auto p-2 sm:p-4 divide-y divide-slate-100">
+              {queue.length === 0 ? (
+                <div className="py-20 text-center text-sm text-slate-400">
+                  Queue is empty. Click on any track to start listening.
+                </div>
+              ) : (
+                queue.map((track, idx) => (
+                  <TrackRow
+                    key={track.id}
+                    track={track}
+                    index={idx}
+                    playlistTracks={queue}
+                  />
+                ))
+              )}
+            </div>
+
+            <div className="hidden md:block w-64 border-l border-slate-100 p-4 space-y-1 overflow-y-auto bg-white">
+              {/* 1. My Playlists */}
+              <div className="border-b border-slate-100">
+                <div
+                  onClick={() => toggleAccordion("playlists")}
+                  className="flex items-center justify-between py-3 text-xs font-semibold text-slate-700 cursor-pointer hover:text-[#365377] select-none"
+                >
+                  <span>My Playlists</span>
+                  <ChevronDown
+                    className={cn(
+                      "w-3.5 h-3.5 text-slate-400 transition-transform duration-200",
+                      openAccordion === "playlists" && "rotate-180"
+                    )}
+                  />
+                </div>
+                {openAccordion === "playlists" && (
+                  <div className="pb-3 pl-2 space-y-1.5 animate-fade-in text-xs text-slate-600">
+                    {playerPlaylists.filter(p => !p.isCollection).map((pl) => (
+                      <div
+                        key={pl.id}
+                        onClick={() => {
+                          if (pl.tracks && pl.tracks.length > 0) {
+                            playQueue(pl.tracks, 0, true);
+                          }
+                        }}
+                        className="py-1 px-2 rounded hover:bg-slate-50 cursor-pointer truncate hover:text-slate-900"
+                      >
+                        {pl.title}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Artists */}
+              <div className="border-b border-slate-100">
+                <div
+                  onClick={() => toggleAccordion("artists")}
+                  className="flex items-center justify-between py-3 text-xs font-semibold text-slate-700 cursor-pointer hover:text-[#365377] select-none"
+                >
+                  <span>Artists</span>
+                  <ChevronDown
+                    className={cn(
+                      "w-3.5 h-3.5 text-slate-400 transition-transform duration-200",
+                      openAccordion === "artists" && "rotate-180"
+                    )}
+                  />
+                </div>
+                {openAccordion === "artists" && (
+                  <div className="pb-3 pl-2 space-y-1.5 animate-fade-in text-xs text-slate-600">
+                    {playerArtists.length === 0 ? (
+                      <div className="py-1 px-2 text-[11px] text-slate-400 italic">
+                        {isAuthenticated ? "No followed artists" : "Sign in to see followed artists"}
+                      </div>
+                    ) : (
+                      playerArtists.slice(0, 15).map((artist) => (
+                        <div
+                          key={artist.id}
+                          onClick={async () => {
+                            try {
+                              const artistTracks = await artistService.getTracksByArtist(artist.id);
+                              if (artistTracks.length > 0) {
+                                playQueue(artistTracks, 0, true);
+                              }
+                            } catch (err) {
+                              console.error("Failed to load artist tracks:", err);
+                            }
+                          }}
+                          className="py-1 px-2 rounded hover:bg-slate-50 cursor-pointer truncate hover:text-slate-900"
+                        >
+                          {artist.name}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* 3. Collections */}
+              <div className="border-b border-slate-100">
+                <div
+                  onClick={() => toggleAccordion("collections")}
+                  className="flex items-center justify-between py-3 text-xs font-semibold text-slate-700 cursor-pointer hover:text-[#365377] select-none"
+                >
+                  <span>Collections</span>
+                  <ChevronDown
+                    className={cn(
+                      "w-3.5 h-3.5 text-slate-400 transition-transform duration-200",
+                      openAccordion === "collections" && "rotate-180"
+                    )}
+                  />
+                </div>
+                {openAccordion === "collections" && (
+                  <div className="pb-3 pl-2 space-y-1.5 animate-fade-in text-xs text-slate-600">
+                    {playerPlaylists.filter(p => p.isCollection).map((coll) => (
+                      <div
+                        key={coll.id}
+                        onClick={() => {
+                          if (coll.tracks && coll.tracks.length > 0) {
+                            playQueue(coll.tracks, 0, true);
+                          }
+                        }}
+                        className="py-1 px-2 rounded hover:bg-slate-50 cursor-pointer truncate hover:text-slate-900"
+                      >
+                        {coll.title}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DESKTOP BOTTOM PLAYER BAR */}
       <div className="hidden lg:flex fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[1100px] h-[66px] bg-white border-t border-slate-200 select-none z-50 shadow-[0_-4px_25px_rgba(0,0,0,0.15)] flex-col justify-between px-4 sm:px-6 py-1.5">
         <div className="w-full relative flex items-center gap-3">
           {/* Current Time on Left */}
@@ -336,161 +518,6 @@ export function MusicPlayer() {
 
       {/* 10-BAND EQUALIZER PANEL */}
       <EqualizerModal />
-
-      {/* QUEUE / PLAYLIST FULL OVERLAY (Positioned from Top down to Bottom Player Bar) */}
-      {queueModalOpen && currentTrack && (
-        <div className="fixed top-0 bottom-[66px] left-0 right-0 mx-auto w-full max-w-[1100px] z-50 flex flex-col bg-white shadow-2xl border-x border-slate-200 animate-fade-in select-none">
-          <div className="h-11 border-b border-slate-100 px-4 sm:px-6 flex items-center justify-between bg-white shrink-0">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-slate-100 shadow-2xs">
-                {currentTrack.coverUrl ? (
-                  <img src={currentTrack.coverUrl} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-[#365377]" />
-                )}
-              </div>
-              <h2 className="text-xs sm:text-sm font-semibold text-slate-800 truncate">
-                {currentTrack.artist.name} — {currentTrack.title}
-              </h2>
-            </div>
-            <button
-              type="button"
-              onClick={() => setQueueModalOpen(false)}
-              className="p-1 text-slate-400 hover:text-slate-800 rounded transition-colors focus:outline-none"
-              aria-label="Close Playlist View"
-            >
-              <X className="w-4.5 h-4.5" />
-            </button>
-          </div>
-
-          {/* Overlay Content Area: Left Queue Tracks + Right Category Accordions */}
-          <div className="flex-1 flex overflow-hidden">
-            {/* Left: Tracks List */}
-            <div className="flex-1 overflow-y-auto p-2 sm:p-4 divide-y divide-slate-100">
-              {queue.length === 0 ? (
-                <div className="py-20 text-center text-sm text-slate-400">
-                  Queue is empty. Click on any track to start listening.
-                </div>
-              ) : (
-                queue.map((track, idx) => (
-                  <TrackRow
-                    key={track.id}
-                    track={track}
-                    index={idx}
-                    playlistTracks={queue}
-                  />
-                ))
-              )}
-            </div>
-
-            <div className="hidden md:block w-64 border-l border-slate-100 p-4 space-y-1 overflow-y-auto bg-white">
-              {/* 1. My Playlists */}
-              <div className="border-b border-slate-100">
-                <div
-                  onClick={() => toggleAccordion("playlists")}
-                  className="flex items-center justify-between py-3 text-xs font-semibold text-slate-700 cursor-pointer hover:text-[#365377] select-none"
-                >
-                  <span>My Playlists</span>
-                  <ChevronDown
-                    className={cn(
-                      "w-3.5 h-3.5 text-slate-400 transition-transform duration-200",
-                      openAccordion === "playlists" && "rotate-180"
-                    )}
-                  />
-                </div>
-                {openAccordion === "playlists" && (
-                  <div className="pb-3 pl-2 space-y-1.5 animate-fade-in text-xs text-slate-600">
-                    {playerPlaylists.filter(p => !p.isCollection).map((pl) => (
-                      <div
-                        key={pl.id}
-                        onClick={() => {
-                          if (pl.tracks && pl.tracks.length > 0) {
-                            playQueue(pl.tracks, 0, true);
-                          }
-                        }}
-                        className="py-1 px-2 rounded hover:bg-slate-50 cursor-pointer truncate hover:text-slate-900"
-                      >
-                        {pl.title}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* 2. Artists */}
-              <div className="border-b border-slate-100">
-                <div
-                  onClick={() => toggleAccordion("artists")}
-                  className="flex items-center justify-between py-3 text-xs font-semibold text-slate-700 cursor-pointer hover:text-[#365377] select-none"
-                >
-                  <span>Artists</span>
-                  <ChevronDown
-                    className={cn(
-                      "w-3.5 h-3.5 text-slate-400 transition-transform duration-200",
-                      openAccordion === "artists" && "rotate-180"
-                    )}
-                  />
-                </div>
-                {openAccordion === "artists" && (
-                  <div className="pb-3 pl-2 space-y-1.5 animate-fade-in text-xs text-slate-600">
-                    {playerArtists.slice(0, 8).map((artist) => (
-                      <div
-                        key={artist.id}
-                        onClick={async () => {
-                          try {
-                            const artistTracks = await artistService.getTracksByArtist(artist.id);
-                            if (artistTracks.length > 0) {
-                              playQueue(artistTracks, 0, true);
-                            }
-                          } catch (err) {
-                            console.error("Failed to load artist tracks:", err);
-                          }
-                        }}
-                        className="py-1 px-2 rounded hover:bg-slate-50 cursor-pointer truncate hover:text-slate-900"
-                      >
-                        {artist.name}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* 3. Collections */}
-              <div className="border-b border-slate-100">
-                <div
-                  onClick={() => toggleAccordion("collections")}
-                  className="flex items-center justify-between py-3 text-xs font-semibold text-slate-700 cursor-pointer hover:text-[#365377] select-none"
-                >
-                  <span>Collections</span>
-                  <ChevronDown
-                    className={cn(
-                      "w-3.5 h-3.5 text-slate-400 transition-transform duration-200",
-                      openAccordion === "collections" && "rotate-180"
-                    )}
-                  />
-                </div>
-                {openAccordion === "collections" && (
-                  <div className="pb-3 pl-2 space-y-1.5 animate-fade-in text-xs text-slate-600">
-                    {playerPlaylists.filter(p => p.isCollection).map((coll) => (
-                      <div
-                        key={coll.id}
-                        onClick={() => {
-                          if (coll.tracks && coll.tracks.length > 0) {
-                            playQueue(coll.tracks, 0, true);
-                          }
-                        }}
-                        className="py-1 px-2 rounded hover:bg-slate-50 cursor-pointer truncate hover:text-slate-900"
-                      >
-                        {coll.title}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

@@ -76,7 +76,7 @@ export function MiniPlayer({ onOpenQueue }: MiniPlayerProps) {
       {/* 1. COLLAPSED MINI PLAYER (Visible on mobile/tablet < 1024px) */}
       <div
         onClick={() => setExpanded(true)}
-        className="lg:hidden fixed bottom-14 left-2 right-2 h-14 bg-white border border-slate-200 rounded-xl px-3 flex items-center justify-between select-none z-45 shadow-lg cursor-pointer"
+        className="lg:hidden fixed bottom-14 left-2 right-2 h-14 bg-white border border-slate-200 rounded-xl px-3 flex items-center justify-between select-none z-[45] shadow-lg cursor-pointer"
       >
         {/* Track info */}
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
